@@ -1,9 +1,8 @@
 import Image from 'next/image'
 import Link from 'next/link'
 import type {SanityImageSource} from '@sanity/image-url'
-import {client} from '@/sanity/lib/client'
+import {getHomePageData} from '@/sanity/lib/fetch'
 import {urlFor} from '@/sanity/lib/image'
-import {homePageQuery} from '@/sanity/lib/queries'
 import styles from './page.module.css'
 
 type Award = {
@@ -57,7 +56,7 @@ const fallbackAwards: Award[] = [
 ]
 
 export default async function HomePage() {
-  const data = await client.fetch<HomePageData>(homePageQuery)
+  const data = await getHomePageData<HomePageData>()
   const site = data?.siteSettings
   const projects = data?.projects ?? []
   const awards = site?.awards?.length ? site.awards : fallbackAwards

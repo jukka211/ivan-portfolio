@@ -2,9 +2,8 @@ import Image from 'next/image'
 import Link from 'next/link'
 import type {SanityImageSource} from '@sanity/image-url'
 import {notFound} from 'next/navigation'
-import {client} from '@/sanity/lib/client'
+import {getProjectBySlug} from '@/sanity/lib/fetch'
 import {urlFor} from '@/sanity/lib/image'
-import {projectBySlugQuery} from '@/sanity/lib/queries'
 import styles from './page.module.css'
 
 type MediaItem = {
@@ -34,7 +33,7 @@ export default async function ProjectPage({
   params: Promise<{slug: string}>
 }) {
   const {slug} = await params
-  const project = await client.fetch<Project | null>(projectBySlugQuery, {slug})
+  const project = await getProjectBySlug<Project | null>(slug)
 
   if (!project) notFound()
 

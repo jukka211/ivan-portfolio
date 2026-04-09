@@ -5,5 +5,6 @@ export const client = createClient({
   projectId,
   dataset,
   apiVersion,
-  useCdn: true,
+  // Read fresh published data when Next regenerates pages after a webhook.
+  useCdn: false,
 })
