@@ -40,7 +40,7 @@
   .projectList {
     display: flex;
     flex-direction: column;
-    gap: 5rem;
+    gap: 8rem;
   }
   
   .projectCard {
