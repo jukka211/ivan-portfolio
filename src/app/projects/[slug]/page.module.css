@@ -47,14 +47,14 @@
     left: 0;
     z-index: 10;
     display: grid;
-    grid-template-columns: 1fr auto auto auto;
+    grid-template-columns: 1fr 0.1fr 1fr auto;
     gap: 1rem;
     align-items: center;
-    padding: 1rem;
+    padding: 0.2rem 0.4rem 0.2rem 0.4rem;
     font-size: 0.9375rem;
     line-height: 1;
     color: #fff;
-    background: linear-gradient(to top, rgba(0, 0, 0, 0.9), rgba(0, 0, 0, 0));
+    background: black;
   }
   
   .meta {
