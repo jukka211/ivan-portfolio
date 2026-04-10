@@ -14,35 +14,75 @@ export default function LazyVideo({
   priority = false,
 }: LazyVideoProps) {
   const ref = useRef<HTMLVideoElement | null>(null)
-  const [shouldLoad, setShouldLoad] = useState(priority)
+  const [isActive, setIsActive] = useState(priority)
 
   useEffect(() => {
-    if (priority || !ref.current) return
+    const el = ref.current
+    if (!el) return
+
+    const activate = () => {
+      setIsActive(true)
+    }
+
+    const deactivate = () => {
+      setIsActive(false)
+
+      if (el) {
+        el.pause()
+        el.removeAttribute('src')
+        el.load()
+      }
+    }
+
+    if (priority) {
+      activate()
+    }
 
     const observer = new IntersectionObserver(
       ([entry]) => {
         if (entry.isIntersecting) {
-          setShouldLoad(true)
-          observer.disconnect()
+          activate()
+        } else {
+          deactivate()
         }
       },
       {
-        rootMargin: '300px 0px',
-        threshold: 0.01,
+        rootMargin: '150px 0px',
+        threshold: 0.25,
       },
     )
 
-    observer.observe(ref.current)
+    observer.observe(el)
 
-    return () => observer.disconnect()
+    return () => {
+      observer.disconnect()
+      deactivate()
+    }
   }, [priority])
+
+  useEffect(() => {
+    const el = ref.current
+    if (!el) return
+
+    if (isActive) {
+      el.src = src
+      el.load()
+
+      const playPromise = el.play()
+      if (playPromise) {
+        playPromise.catch(() => {})
+      }
+    } else {
+      el.pause()
+      el.removeAttribute('src')
+      el.load()
+    }
+  }, [isActive, src])
 
   return (
     <video
       ref={ref}
       className={className}
-      src={shouldLoad ? src : undefined}
-      autoPlay={shouldLoad}
       muted
       loop
       playsInline
