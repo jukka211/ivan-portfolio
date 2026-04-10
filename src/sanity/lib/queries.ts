@@ -21,6 +21,7 @@ export const homePageQuery = groq`
     featured,
     coverMedia{
       mediaType,
+      fitMode,
       image,
       video{
         asset->{
@@ -49,6 +50,7 @@ export const projectBySlugQuery = groq`
   "slug": slug.current,
   coverMedia{
     mediaType,
+    fitMode,
     image,
     video{
       asset->{
@@ -60,6 +62,7 @@ export const projectBySlugQuery = groq`
   },
   slides[]{
     mediaType,
+    fitMode,
     image,
     video{
       asset->{

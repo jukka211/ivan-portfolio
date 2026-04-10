@@ -1,5 +1,52 @@
 import {defineArrayMember, defineField, defineType} from 'sanity'
 
+const createProjectMediaFields = () => [
+  defineField({
+    name: 'mediaType',
+    title: 'Media type',
+    type: 'string',
+    options: {
+      list: [
+        {title: 'Image', value: 'image'},
+        {title: 'Video', value: 'video'},
+      ],
+      layout: 'radio',
+    },
+    initialValue: 'image',
+    validation: (Rule) => Rule.required(),
+  }),
+  defineField({
+    name: 'fitMode',
+    title: 'Object fit mode',
+    type: 'string',
+    description: 'Default is contain. Use cover to crop and fill the screen.',
+    options: {
+      list: [
+        {title: 'Contain', value: 'contain'},
+        {title: 'Cover', value: 'cover'},
+      ],
+      layout: 'radio',
+    },
+    initialValue: 'contain',
+  }),
+  defineField({
+    name: 'image',
+    title: 'Image',
+    type: 'image',
+    options: {hotspot: true},
+    hidden: ({parent}) => parent?.mediaType !== 'image',
+  }),
+  defineField({
+    name: 'video',
+    title: 'Video',
+    type: 'file',
+    options: {
+      accept: 'video/webm,video/mp4',
+    },
+    hidden: ({parent}) => parent?.mediaType !== 'video',
+  }),
+]
+
 export const projectType = defineType({
   name: 'project',
   title: 'Project',
@@ -38,38 +85,7 @@ export const projectType = defineType({
       name: 'coverMedia',
       title: 'Cover media',
       type: 'object',
-      fields: [
-        defineField({
-          name: 'mediaType',
-          title: 'Media type',
-          type: 'string',
-          options: {
-            list: [
-              {title: 'Image', value: 'image'},
-              {title: 'Video', value: 'video'},
-            ],
-            layout: 'radio',
-          },
-          initialValue: 'image',
-          validation: (Rule) => Rule.required(),
-        }),
-        defineField({
-          name: 'image',
-          title: 'Image',
-          type: 'image',
-          options: {hotspot: true},
-          hidden: ({parent}) => parent?.mediaType !== 'image',
-        }),
-        defineField({
-          name: 'video',
-          title: 'Video',
-          type: 'file',
-          options: {
-            accept: 'video/webm,video/mp4',
-          },
-          hidden: ({parent}) => parent?.mediaType !== 'video',
-        }),
-      ],
+      fields: createProjectMediaFields(),
     }),
     defineField({
       name: 'slides',
@@ -78,38 +94,7 @@ export const projectType = defineType({
       of: [
         defineArrayMember({
           type: 'object',
-          fields: [
-            defineField({
-              name: 'mediaType',
-              title: 'Media type',
-              type: 'string',
-              options: {
-                list: [
-                  {title: 'Image', value: 'image'},
-                  {title: 'Video', value: 'video'},
-                ],
-                layout: 'radio',
-              },
-              initialValue: 'image',
-              validation: (Rule) => Rule.required(),
-            }),
-            defineField({
-              name: 'image',
-              title: 'Image',
-              type: 'image',
-              options: {hotspot: true},
-              hidden: ({parent}) => parent?.mediaType !== 'image',
-            }),
-            defineField({
-              name: 'video',
-              title: 'Video',
-              type: 'file',
-              options: {
-                accept: 'video/webm,video/mp4',
-              },
-              hidden: ({parent}) => parent?.mediaType !== 'video',
-            }),
-          ],
+          fields: createProjectMediaFields(),
           preview: {
             select: {
               title: 'mediaType',

@@ -8,6 +8,7 @@ import styles from './page.module.css'
 
 type MediaItem = {
   mediaType?: 'image' | 'video'
+  fitMode?: 'contain' | 'cover'
   image?: SanityImageSource
   video?: {
     asset?: {
@@ -48,6 +49,7 @@ export default async function ProjectPage({
     <main className={styles.page}>
       <section className={styles.slider}>
         {slides.map((slide, index) => {
+          const fitMode = slide.fitMode === 'cover' ? 'cover' : 'contain'
           const imageUrl =
             slide.mediaType === 'image' && slide.image
               ? urlFor(slide.image).width(2200).quality(90).url()
@@ -61,6 +63,7 @@ export default async function ProjectPage({
               {videoUrl ? (
                 <video
                   className={styles.media}
+                  style={{objectFit: fitMode}}
                   src={videoUrl}
                   autoPlay
                   muted
@@ -75,6 +78,7 @@ export default async function ProjectPage({
                   alt={project.title || 'Project slide'}
                   fill
                   className={styles.media}
+                  style={{objectFit: fitMode}}
                   sizes="100vw"
                   priority={index === 0}
                 />
