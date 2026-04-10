@@ -4,6 +4,7 @@ import type {SanityImageSource} from '@sanity/image-url'
 import {getHomePageData} from '@/sanity/lib/fetch'
 import {urlFor} from '@/sanity/lib/image'
 import styles from './page.module.css'
+import LazyVideo from './LazyVideo'
 
 type Award = {
   name?: string
@@ -86,14 +87,10 @@ export default async function HomePage() {
                   <article className={styles.projectCard}>
                     <div className={styles.projectImageWrap}>
                       {videoUrl ? (
-                        <video
-                          className={styles.projectVideo}
+                        <LazyVideo
                           src={videoUrl}
-                          autoPlay
-                          muted
-                          loop
-                          playsInline
-                          preload={index === 0 ? 'auto' : 'metadata'}
+                          className={styles.projectVideo}
+                          priority={index === 0}
                         />
                       ) : imageUrl ? (
                         <Image
@@ -124,97 +121,97 @@ export default async function HomePage() {
         </section>
 
         <aside className={styles.rightColumn}>
-  <div className={styles.sidebarInner}>
-    <div className={styles.sidebarTop}>
-      <div className={styles.topBar}>
-        <div>Ivan Sukhov</div>
-        <div>© 2025</div>
-      </div>
+          <div className={styles.sidebarInner}>
+            <div className={styles.sidebarTop}>
+              <div className={styles.topBar}>
+                <div>Ivan Sukhov</div>
+                <div>© 2025</div>
+              </div>
 
-      <div className={styles.intro}>
-        {site?.intro ? (
-          site.intro
-        ) : (
-          <>
-            Brand and Web Designer working across brand strategy, concept
-            development, visual identity, web design, and web development.{' '}
-            Cofounder of{' '}
-            <a
-              href="https://o-g-o.studio"
-              target="_blank"
-              rel="noopener noreferrer"
-              className={styles.inlineLink}
-            >
-              o-g-o.studio
-            </a>
-            . Based in Linz, Austria. Available for enquiries, collaborations.
-          </>
-        )}
-      </div>
-    </div>
+              <div className={styles.intro}>
+                {site?.intro ? (
+                  site.intro
+                ) : (
+                  <>
+                    Brand and Web Designer working across brand strategy, concept
+                    development, visual identity, web design, and web development.{' '}
+                    Cofounder of{' '}
+                    <a
+                      href="https://o-g-o.studio"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className={styles.inlineLink}
+                    >
+                      o-g-o.studio
+                    </a>
+                    . Based in Linz, Austria. Available for enquiries, collaborations.
+                  </>
+                )}
+              </div>
+            </div>
 
-    <div className={styles.bottomInfo}>
-      <div className={styles.awardsWrap}>
-        <div className={styles.sectionLabel}>Awards:</div>
+            <div className={styles.bottomInfo}>
+              <div className={styles.awardsWrap}>
+                <div className={styles.sectionLabel}>Awards:</div>
 
-        <div className={styles.awardsContent}>
-          <div className={styles.awardsNames}>
-            {awards.map((award, index) => (
-              <div key={`name-${award.name}-${index}`}>{award.name}</div>
-            ))}
+                <div className={styles.awardsContent}>
+                  <div className={styles.awardsNames}>
+                    {awards.map((award, index) => (
+                      <div key={`name-${award.name}-${index}`}>{award.name}</div>
+                    ))}
+                  </div>
+
+                  <div className={styles.awardsResults}>
+                    {awards.map((award, index) => (
+                      <div key={`result-${award.name}-${index}`}>{award.result}</div>
+                    ))}
+                  </div>
+
+                  <div className={styles.awardsYears}>
+                    {awards.map((award, index) => (
+                      <div key={`year-${award.name}-${index}`}>{award.year}</div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+
+              <div className={styles.contactBlock}>
+                <div className={styles.sectionLabel}>Contact:</div>
+
+                <div className={styles.contactLinks}>
+                  {site?.instagram ? (
+                    <a
+                      href={site.instagram}
+                      target="_blank"
+                      rel="noreferrer"
+                      className={styles.contactLink}
+                    >
+                      Instagram
+                    </a>
+                  ) : (
+                    <span>Instagram</span>
+                  )}
+
+                  {site?.email ? (
+                    <a href={`mailto:${site.email}`} className={styles.contactLink}>
+                      E-Mail,
+                    </a>
+                  ) : (
+                    <span>E-Mail,</span>
+                  )}
+
+                  {site?.phone ? (
+                    <a href={`tel:${site.phone}`} className={styles.contactLink}>
+                      Tel.
+                    </a>
+                  ) : (
+                    <span>Tel.</span>
+                  )}
+                </div>
+              </div>
+            </div>
           </div>
-
-          <div className={styles.awardsResults}>
-            {awards.map((award, index) => (
-              <div key={`result-${award.name}-${index}`}>{award.result}</div>
-            ))}
-          </div>
-
-          <div className={styles.awardsYears}>
-            {awards.map((award, index) => (
-              <div key={`year-${award.name}-${index}`}>{award.year}</div>
-            ))}
-          </div>
-        </div>
-      </div>
-
-      <div className={styles.contactBlock}>
-        <div className={styles.sectionLabel}>Contact:</div>
-
-        <div className={styles.contactLinks}>
-          {site?.instagram ? (
-            <a
-              href={site.instagram}
-              target="_blank"
-              rel="noreferrer"
-              className={styles.contactLink}
-            >
-              Instagram
-            </a>
-          ) : (
-            <span>Instagram</span>
-          )}
-
-          {site?.email ? (
-            <a href={`mailto:${site.email}`} className={styles.contactLink}>
-              E-Mail,
-            </a>
-          ) : (
-            <span>E-Mail,</span>
-          )}
-
-          {site?.phone ? (
-            <a href={`tel:${site.phone}`} className={styles.contactLink}>
-              Tel.
-            </a>
-          ) : (
-            <span>Tel.</span>
-          )}
-        </div>
-      </div>
-    </div>
-  </div>
-</aside>
+        </aside>
       </div>
     </main>
   )
