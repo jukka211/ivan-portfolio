@@ -64,4 +64,15 @@ video.media {
     grid-template-columns: 1fr 1fr;
     row-gap: 0.75rem;
   }
+  .slide {
+    min-height: 0;
+    width:100vw;
+    height: auto;
+  }
+  video.media {
+    width: 100%;
+    height: auto;
+    display: block;
+    object-fit: contain;
+  }
 }
