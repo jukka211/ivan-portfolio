@@ -61,6 +61,20 @@ export const projectBySlugQuery = groq`
     }
   },
   slides[]{
+    ...,
+    _key,
+    slideType,
+    leftColumn1[]{
+      _key,
+      role,
+      name
+    },
+    leftColumn2[]{
+      _key,
+      role,
+      name
+    },
+    text,
     mediaType,
     fitMode,
     image,

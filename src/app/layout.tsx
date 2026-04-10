@@ -15,6 +15,12 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: "Ivan Sukhov",
   description: "Brand and Web Designer working across brand strategy, concept, development, visual identity, web design, and web development.",
+  icons: {
+    icon: [
+      { url: "/favicon.svg", type: "image/svg+xml", sizes: "any" },
+      { url: "/favicon.ico" },
+    ],
+  },
 };
 
 export default function RootLayout({

@@ -4,9 +4,18 @@ import type {SanityImageSource} from '@sanity/image-url'
 import {notFound} from 'next/navigation'
 import {getProjectBySlug} from '@/sanity/lib/fetch'
 import {urlFor} from '@/sanity/lib/image'
+import creditsStyles from './credits-slide.module.css'
 import styles from './page.module.css'
 
+type CreditItem = {
+  _key?: string
+  role?: string
+  name?: string
+}
+
 type MediaItem = {
+  _key?: string
+  slideType?: undefined
   mediaType?: 'image' | 'video'
   fitMode?: 'contain' | 'cover'
   image?: SanityImageSource
@@ -19,13 +28,23 @@ type MediaItem = {
   }
 }
 
+type CreditsSlide = {
+  _key?: string
+  slideType: 'credits'
+  leftColumn1?: CreditItem[]
+  leftColumn2?: CreditItem[]
+  text?: string
+}
+
+type ProjectSlide = MediaItem | CreditsSlide
+
 type Project = {
   title?: string
   type?: string
   year?: string
   slug?: string
   coverMedia?: MediaItem
-  slides?: MediaItem[]
+  slides?: ProjectSlide[]
 }
 
 export default async function ProjectPage({
@@ -49,6 +68,47 @@ export default async function ProjectPage({
     <main className={styles.page}>
       <section className={styles.slider}>
         {slides.map((slide, index) => {
+          if (slide.slideType === 'credits') {
+            return (
+              <article
+                key={slide._key ?? `credits-${index}`}
+                className={creditsStyles.creditsSlide}
+              >
+                <div className={creditsStyles.left}>
+                  <div className={creditsStyles.columns}>
+                    <div className={creditsStyles.column}>
+                      {slide.leftColumn1?.map((item, itemIndex) => (
+                        <div
+                          key={item._key ?? `left-1-${itemIndex}`}
+                          className={creditsStyles.creditRow}
+                        >
+                          <div className={creditsStyles.role}>{item.role}</div>
+                          <div className={creditsStyles.name}>{item.name}</div>
+                        </div>
+                      ))}
+                    </div>
+
+                    <div className={creditsStyles.column}>
+                      {slide.leftColumn2?.map((item, itemIndex) => (
+                        <div
+                          key={item._key ?? `left-2-${itemIndex}`}
+                          className={creditsStyles.creditRow}
+                        >
+                          <div className={creditsStyles.role}>{item.role}</div>
+                          <div className={creditsStyles.name}>{item.name}</div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+
+                <div className={creditsStyles.right}>
+                  <div className={creditsStyles.text}>{slide.text}</div>
+                </div>
+              </article>
+            )
+          }
+
           const fitMode = slide.fitMode === 'cover' ? 'cover' : 'contain'
           const imageUrl =
             slide.mediaType === 'image' && slide.image
@@ -59,7 +119,7 @@ export default async function ProjectPage({
             slide.mediaType === 'video' ? slide.video?.asset?.url : null
 
           return (
-            <article key={index} className={styles.slide}>
+            <article key={slide._key ?? index} className={styles.slide}>
               {videoUrl ? (
                 <video
                   className={styles.media}
