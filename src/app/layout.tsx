@@ -13,8 +13,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Ivan Portfolio",
-  description: "Portfolio website",
+  title: "Ivan Sukhov",
+  description: "Brand and Web Designer working across brand strategy, concept, development, visual identity, web design, and web development.",
 };
 
 export default function RootLayout({
