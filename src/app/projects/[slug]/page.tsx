@@ -4,6 +4,7 @@ import type {SanityImageSource} from '@sanity/image-url'
 import {notFound} from 'next/navigation'
 import {getProjectBySlug} from '@/sanity/lib/fetch'
 import {urlFor} from '@/sanity/lib/image'
+import LazyVideo from '@/app/LazyVideo'
 import creditsStyles from './credits-slide.module.css'
 import styles from './page.module.css'
 
@@ -121,16 +122,10 @@ export default async function ProjectPage({
           return (
             <article key={slide._key ?? index} className={styles.slide}>
               {videoUrl ? (
-                <video
-                  className={styles.media}
-                  style={{objectFit: fitMode}}
+                <LazyVideo
                   src={videoUrl}
-                  autoPlay
-                  muted
-                  loop
-                  playsInline
-                  controls={false}
-                  preload={index === 0 ? 'auto' : 'metadata'}
+                  className={styles.media}
+                  priority={index === 0}
                 />
               ) : imageUrl ? (
                 <Image

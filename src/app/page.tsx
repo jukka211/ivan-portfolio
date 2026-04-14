@@ -5,6 +5,7 @@ import {getHomePageData} from '@/sanity/lib/fetch'
 import {urlFor} from '@/sanity/lib/image'
 import styles from './page.module.css'
 import LazyVideo from './LazyVideo'
+import ThemeToggle from './ThemeToggle'
 
 type Award = {
   name?: string
@@ -64,6 +65,7 @@ export default async function HomePage() {
 
   return (
     <main className={styles.page}>
+      <ThemeToggle />
       <div className={styles.layout}>
         <section className={styles.leftColumn}>
           <div className={styles.projectList}>
@@ -125,14 +127,14 @@ export default async function HomePage() {
             <div className={styles.sidebarTop}>
               <div className={styles.topBar}>
                 <div>Ivan Sukhov</div>
-                <div>© 2025</div>
+                <div>&copy; 2025</div>
               </div>
 
               <div className={styles.intro}>
                 {site?.intro ? (
                   site.intro
                 ) : (
-                  <>
+                  <span>
                     Brand and Web Designer working across brand strategy, concept
                     development, visual identity, web design, and web development.{' '}
                     Cofounder of{' '}
@@ -145,7 +147,7 @@ export default async function HomePage() {
                       o-g-o.studio
                     </a>
                     . Based in Linz, Austria. Available for enquiries, collaborations.
-                  </>
+                  </span>
                 )}
               </div>
             </div>

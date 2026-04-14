@@ -1,7 +1,7 @@
 .page {
   min-height: 100vh;
-  background: #000;
-  color: #fff;
+  background: var(--bg);
+  color: var(--text);
   font-family: "helvetica-neue-lt-pro", sans-serif;
   font-weight: 500;
   font-style: normal;
@@ -51,7 +51,7 @@
   position: relative;
   aspect-ratio: 3 / 2;
   overflow: hidden;
-  color: #fff;
+  color: var(--text);
 }
 
 .projectImage {
@@ -71,7 +71,7 @@
   align-items: flex-end;
   padding: 1rem;
   font-size: 0.9375rem;
-  color: #fff;
+  color: var(--text);
 }
 
 .projectMeta {
@@ -82,11 +82,11 @@
   line-height: 1;
   letter-spacing: 0;
   text-transform: none;
-  color: #fff;
+  color: var(--text);
 }
 
 .projectMetaMuted {
-  color: #fff;
+  color: var(--text);
 }
 
 .sidebarInner {
@@ -154,7 +154,7 @@
   font-size: 0.9375rem;
   letter-spacing: 0;
   text-transform: none;
-  color: #fff;
+  color: var(--text);
   line-height: 1.1;
 }
 
@@ -233,17 +233,17 @@
 
   .awardsWrap {
     display: flex;
-  flex-direction: column;
-  width: 100%;
- gap: 0.4rem;
+    flex-direction: column;
+    width: 100%;
+    gap: 0.4rem;
     padding-right: 0;
   }
 
   .contactBlock {
     display: flex;
-  flex-direction: column;
-  width: 100%;
- gap: 0.4rem;
+    flex-direction: column;
+    width: 100%;
+    gap: 0.4rem;
     padding-left: 0;
   }
 
@@ -253,7 +253,7 @@
     justify-self: stretch;
   }
   .contactLinks {
-        display: flex;
-  flex-direction: column;
+    display: flex;
+    flex-direction: column;
   }
 }
