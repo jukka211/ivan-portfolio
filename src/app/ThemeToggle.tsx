@@ -1,7 +1,7 @@
-// app/ThemeToggle.tsx
 'use client'
 
-import {useEffect, useState} from 'react'
+import { useEffect, useState } from 'react'
+import './ThemeToggle.css'
 
 export default function ThemeToggle() {
   const [light, setLight] = useState(false)
@@ -11,31 +11,14 @@ export default function ThemeToggle() {
   }, [light])
 
   return (
-<button
-  onClick={() => setLight((prev) => !prev)}
-  aria-label="Toggle theme"
-  style={{
-    position: 'fixed',
-    right: '1rem',
-    top: '49%',
-    zIndex: 9999,
-    background: 'none',
-    border: 'none',
-    color: 'var(--text)',
-    cursor: 'pointer',
-    fontSize: '0.9375rem',
-    lineHeight: '1',
-    display: 'flex',
-    flexDirection: 'column',
-    alignItems: 'center',
-    gap: '0',
-    padding: '0',
-    transition: 'opacity 0.2s',
-  }}
->
-  <span style={{opacity: light ? 0.35 : 1, transition: 'opacity 0.2s'}}>b</span>
-  <span>/</span>
-  <span style={{opacity: light ? 1 : 0.35, transition: 'opacity 0.2s'}}>w</span>
-</button>
+    <button
+      onClick={() => setLight((prev) => !prev)}
+      aria-label="Toggle theme"
+      className="theme-toggle"
+    >
+      <span className={light ? 'theme-toggle-dim' : 'theme-toggle-full'}>b</span>
+      <span>/</span>
+      <span className={light ? 'theme-toggle-full' : 'theme-toggle-dim'}>w</span>
+    </button>
   )
 }
