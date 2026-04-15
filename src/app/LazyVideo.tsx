@@ -6,12 +6,14 @@ type LazyVideoProps = {
   src: string
   className?: string
   priority?: boolean
+  fitMode?: 'contain' | 'cover'
 }
 
 export default function LazyVideo({
   src,
   className,
   priority = false,
+  fitMode = 'contain',
 }: LazyVideoProps) {
   const ref = useRef<HTMLVideoElement | null>(null)
   const [isActive, setIsActive] = useState(priority)
@@ -27,11 +29,9 @@ export default function LazyVideo({
     const deactivate = () => {
       setIsActive(false)
 
-      if (el) {
-        el.pause()
-        el.removeAttribute('src')
-        el.load()
-      }
+      el.pause()
+      el.removeAttribute('src')
+      el.load()
     }
 
     if (priority) {
@@ -83,6 +83,7 @@ export default function LazyVideo({
     <video
       ref={ref}
       className={className}
+      style={{objectFit: fitMode}}
       muted
       loop
       playsInline

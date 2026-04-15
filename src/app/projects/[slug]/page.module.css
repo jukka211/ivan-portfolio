@@ -23,16 +23,16 @@
 }
 
 .media {
-  object-fit: contain;
+  width: 100%;
+  height: 100%;
+  display: block;
 }
 
 video.media {
   width: 100%;
   height: 100vh;
   display: block;
-  object-fit: contain;
 }
-
 .bottomBar {
   position: fixed;
   right: 0;
@@ -73,6 +73,5 @@ video.media {
     width: 100%;
     height: auto;
     display: block;
-    object-fit: contain;
   }
 }

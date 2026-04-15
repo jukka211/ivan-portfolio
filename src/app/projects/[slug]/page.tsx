@@ -111,6 +111,7 @@ export default async function ProjectPage({
           }
 
           const fitMode = slide.fitMode === 'cover' ? 'cover' : 'contain'
+
           const imageUrl =
             slide.mediaType === 'image' && slide.image
               ? urlFor(slide.image).width(2200).quality(90).url()
@@ -120,12 +121,13 @@ export default async function ProjectPage({
             slide.mediaType === 'video' ? slide.video?.asset?.url : null
 
           return (
-            <article key={slide._key ?? index} className={styles.slide}>
+            <article key={slide._key ?? `slide-${index}`} className={styles.slide}>
               {videoUrl ? (
                 <LazyVideo
                   src={videoUrl}
                   className={styles.media}
                   priority={index === 0}
+                  fitMode={fitMode}
                 />
               ) : imageUrl ? (
                 <Image
