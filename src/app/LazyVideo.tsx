@@ -13,7 +13,7 @@ export default function LazyVideo({
   src,
   className,
   priority = false,
-  fitMode = 'contain',
+  fitMode = 'cover',
 }: LazyVideoProps) {
   const ref = useRef<HTMLVideoElement | null>(null)
   const [isActive, setIsActive] = useState(priority)
@@ -28,23 +28,17 @@ export default function LazyVideo({
 
     const deactivate = () => {
       setIsActive(false)
-
       el.pause()
       el.removeAttribute('src')
       el.load()
     }
 
-    if (priority) {
-      activate()
-    }
+    if (priority) activate()
 
     const observer = new IntersectionObserver(
       ([entry]) => {
-        if (entry.isIntersecting) {
-          activate()
-        } else {
-          deactivate()
-        }
+        if (entry.isIntersecting) activate()
+        else deactivate()
       },
       {
         rootMargin: '150px 0px',
@@ -67,11 +61,8 @@ export default function LazyVideo({
     if (isActive) {
       el.src = src
       el.load()
-
       const playPromise = el.play()
-      if (playPromise) {
-        playPromise.catch(() => {})
-      }
+      if (playPromise) playPromise.catch(() => {})
     } else {
       el.pause()
       el.removeAttribute('src')
