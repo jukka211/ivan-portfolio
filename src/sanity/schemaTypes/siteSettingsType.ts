@@ -27,16 +27,13 @@ export const siteSettingsType = defineType({
       name: 'email',
       title: 'Email',
       type: 'string',
-    }),
-    defineField({
-      name: 'phone',
-      title: 'Phone',
-      type: 'string',
+      initialValue: 'ivan@sukhov.xyz',
     }),
     defineField({
       name: 'instagram',
       title: 'Instagram URL',
       type: 'url',
+      initialValue: 'https://www.instagram.com/sukhov.xyz/',
     }),
     defineField({
       name: 'awards',
@@ -50,6 +47,44 @@ export const siteSettingsType = defineType({
             defineField({name: 'result', title: 'Result', type: 'string'}),
             defineField({name: 'year', title: 'Year', type: 'string'}),
           ],
+        },
+      ],
+    }),
+    defineField({
+      name: 'graphicTools',
+      title: 'Graphic Tools',
+      type: 'array',
+      of: [
+        {
+          type: 'object',
+          fields: [
+            defineField({
+              name: 'label',
+              title: 'Label',
+              type: 'string',
+            }),
+            defineField({
+              name: 'url',
+              title: 'URL',
+              type: 'url',
+            }),
+          ],
+          preview: {
+            select: {
+              title: 'label',
+              subtitle: 'url',
+            },
+          },
+        },
+      ],
+      initialValue: [
+        {
+          _type: 'object',
+          label: 'Stretch A-Z',
+        },
+        {
+          _type: 'object',
+          label: 'OFS',
         },
       ],
     }),

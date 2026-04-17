@@ -13,14 +13,19 @@ type Award = {
   year?: string
 }
 
+type GraphicTool = {
+  label?: string
+  url?: string
+}
+
 type SiteSettings = {
   title?: string
   intro?: string
   location?: string
   email?: string
-  phone?: string
   instagram?: string
   awards?: Award[]
+  graphicTools?: GraphicTool[]
 }
 
 type CoverMedia = {
@@ -57,11 +62,21 @@ const fallbackAwards: Award[] = [
   {name: 'Creative Club Austria', result: 'Shortlist', year: '2025'},
 ]
 
+const fallbackGraphicTools: GraphicTool[] = [
+  {label: 'Stretch A-Z'},
+  {label: 'OFS'},
+]
+
 export default async function HomePage() {
   const data = await getHomePageData<HomePageData>()
   const site = data?.siteSettings
   const projects = data?.projects ?? []
   const awards = site?.awards?.length ? site.awards : fallbackAwards
+  const graphicTools =
+    site?.graphicTools?.length ? site.graphicTools : fallbackGraphicTools
+
+  const email = site?.email || 'ivan@sukhov.xyz'
+  const instagram = site?.instagram || 'https://www.instagram.com/sukhov.xyz/'
 
   return (
     <main className={styles.page}>
@@ -127,7 +142,21 @@ export default async function HomePage() {
             <div className={styles.sidebarTop}>
               <div className={styles.topBar}>
                 <div>Ivan Sukhov</div>
-                <div>&copy; 2025</div>
+                <div>
+                  <a href={`mailto:${email}`} className={styles.inlineLink}>
+                    E-Mail
+                  </a>
+                  ,{' '}
+                  <a
+                    href={instagram}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className={styles.inlineLink}
+                  >
+                    Instagram
+                  </a>{' '}
+                  &copy; 2025
+                </div>
               </div>
 
               <div className={styles.intro}>
@@ -178,36 +207,25 @@ export default async function HomePage() {
               </div>
 
               <div className={styles.contactBlock}>
-                <div className={styles.sectionLabel}>Contact:</div>
+                <div className={styles.sectionLabel}>Graphic Tools:</div>
 
                 <div className={styles.contactLinks}>
-                  {site?.instagram ? (
-                    <a
-                      href={site.instagram}
-                      target="_blank"
-                      rel="noreferrer"
-                      className={styles.contactLink}
-                    >
-                      Instagram
-                    </a>
-                  ) : (
-                    <span>Instagram</span>
-                  )}
-
-                  {site?.email ? (
-                    <a href={`mailto:${site.email}`} className={styles.contactLink}>
-                      E-Mail,
-                    </a>
-                  ) : (
-                    <span>E-Mail,</span>
-                  )}
-
-                  {site?.phone ? (
-                    <a href={`tel:${site.phone}`} className={styles.contactLink}>
-                      Tel.
-                    </a>
-                  ) : (
-                    <span>Tel.</span>
+                  {graphicTools.map((tool, index) =>
+                    tool.url ? (
+                      <a
+                        key={`${tool.label}-${index}`}
+                        href={tool.url}
+                        target="_blank"
+                        rel="noreferrer"
+                        className={styles.contactLink}
+                      >
+                        {tool.label || 'Untitled tool'}
+                      </a>
+                    ) : (
+                      <span key={`${tool.label}-${index}`}>
+                        {tool.label || 'Untitled tool'}
+                      </span>
+                    ),
                   )}
                 </div>
               </div>

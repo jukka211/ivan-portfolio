@@ -7,9 +7,12 @@ export const homePageQuery = groq`
     intro,
     location,
     email,
-    phone,
     instagram,
-    awards
+    awards,
+    graphicTools[]{
+      label,
+      url
+    }
   },
   "projects": *[_type == "project"] | order(order asc, _createdAt desc){
     _id,
