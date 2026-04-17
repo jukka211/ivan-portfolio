@@ -1,4 +1,21 @@
+// src/sanity/schemaTypes/projectType.ts
 import {defineArrayMember, defineField, defineType} from 'sanity'
+
+const createBackgroundField = () =>
+  defineField({
+    name: 'background',
+    title: 'Background',
+    type: 'string',
+    options: {
+      list: [
+        {title: 'White', value: 'white'},
+        {title: 'Black', value: 'black'},
+      ],
+      layout: 'radio',
+    },
+    initialValue: 'white',
+    validation: (Rule) => Rule.required(),
+  })
 
 const createProjectMediaFields = () => [
   defineField({
@@ -29,6 +46,7 @@ const createProjectMediaFields = () => [
     },
     initialValue: 'contain',
   }),
+  createBackgroundField(),
   defineField({
     name: 'image',
     title: 'Image',
@@ -99,10 +117,12 @@ export const projectType = defineType({
             select: {
               title: 'mediaType',
               media: 'image',
+              background: 'background',
             },
-            prepare({title, media}) {
+            prepare({title, media, background}) {
               return {
                 title: title === 'video' ? 'Video slide' : 'Image slide',
+                subtitle: background === 'black' ? 'Black background' : 'White background',
                 media,
               }
             },

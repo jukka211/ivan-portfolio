@@ -58,7 +58,13 @@ video.media {
   color: inherit;
   text-decoration: none;
 }
+.slideWhite {
+  background: #fff;
+}
 
+.slideBlack {
+  background: #000;
+}
 @media (max-width: 767px) {
   .bottomBar {
     grid-template-columns: 1fr 1fr;

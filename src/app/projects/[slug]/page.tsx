@@ -1,3 +1,4 @@
+// src/app/projects/[slug]/page.tsx
 import Image from 'next/image'
 import Link from 'next/link'
 import type {SanityImageSource} from '@sanity/image-url'
@@ -14,11 +15,14 @@ type CreditItem = {
   name?: string
 }
 
+type SlideBackground = 'white' | 'black'
+
 type MediaItem = {
   _key?: string
   slideType?: undefined
   mediaType?: 'image' | 'video'
   fitMode?: 'contain' | 'cover'
+  background?: SlideBackground
   image?: SanityImageSource
   video?: {
     asset?: {
@@ -32,6 +36,7 @@ type MediaItem = {
 type CreditsSlide = {
   _key?: string
   slideType: 'credits'
+  background?: SlideBackground
   leftColumn1?: CreditItem[]
   leftColumn2?: CreditItem[]
   text?: string
@@ -69,11 +74,15 @@ export default async function ProjectPage({
     <main className={styles.page}>
       <section className={styles.slider}>
         {slides.map((slide, index) => {
+          const isBlackBackground = slide.background === 'black'
+
           if (slide.slideType === 'credits') {
             return (
               <article
                 key={slide._key ?? `credits-${index}`}
-                className={creditsStyles.creditsSlide}
+                className={`${creditsStyles.creditsSlide} ${
+                  isBlackBackground ? creditsStyles.dark : creditsStyles.light
+                }`}
               >
                 <div className={creditsStyles.left}>
                   <div className={creditsStyles.columns}>
@@ -121,7 +130,12 @@ export default async function ProjectPage({
             slide.mediaType === 'video' ? slide.video?.asset?.url : null
 
           return (
-            <article key={slide._key ?? `slide-${index}`} className={styles.slide}>
+            <article
+              key={slide._key ?? `slide-${index}`}
+              className={`${styles.slide} ${
+                isBlackBackground ? styles.slideBlack : styles.slideWhite
+              }`}
+            >
               {videoUrl ? (
                 <LazyVideo
                   src={videoUrl}

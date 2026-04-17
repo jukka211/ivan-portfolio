@@ -22,6 +22,7 @@ export const homePageQuery = groq`
     coverMedia{
       mediaType,
       fitMode,
+      background,
       image,
       video{
         asset->{
@@ -51,6 +52,7 @@ export const projectBySlugQuery = groq`
   coverMedia{
     mediaType,
     fitMode,
+    background,
     image,
     video{
       asset->{
@@ -64,6 +66,7 @@ export const projectBySlugQuery = groq`
     ...,
     _key,
     slideType,
+    background,
     leftColumn1[]{
       _key,
       role,
