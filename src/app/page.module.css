@@ -181,6 +181,7 @@
 .contactLinks {
   gap: 0;
   text-align: left;
+  text-decoration: underline;
 }
 .contactLinks {
   justify-self: end;
