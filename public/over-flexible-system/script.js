@@ -389,7 +389,7 @@ function patternCoord(u, v) {
 let myFont;
 
 function preload() {
-  myFont = loadFont("neuehaasgrotdispround-95black-trial.otf");
+  myFont = loadFont('/over-flexible-system/neuehaasgrotdispround-95black-trial.otf')
 }
 
 function prepareWordData() {
