@@ -45,6 +45,28 @@ export const projectSlugsQuery = groq`
 }
 `
 
+export const workSectionsQuery = groq`
+*[_type == "workSection"] | order(order asc, _createdAt asc){
+  _id,
+  projectTitle,
+  projectYear,
+  webType,
+  client,
+  slides[]{
+    _key,
+    mediaType,
+    image,
+    video{
+      asset->{
+        url,
+        originalFilename,
+        mimeType
+      }
+    }
+  }
+}
+`
+
 export const projectBySlugQuery = groq`
 *[_type == "project" && slug.current == $slug][0]{
   _id,

@@ -7,6 +7,9 @@ type LazyVideoProps = {
   className?: string
   priority?: boolean
   fitMode?: 'contain' | 'cover'
+  rootMargin?: string
+  /** When set, bypasses viewport-based lazy loading and directly controls activation. */
+  active?: boolean
 }
 
 export default function LazyVideo({
@@ -14,20 +17,25 @@ export default function LazyVideo({
   className,
   priority = false,
   fitMode = 'cover',
+  rootMargin = '150px 0px',
+  active,
 }: LazyVideoProps) {
   const ref = useRef<HTMLVideoElement | null>(null)
-  const [isActive, setIsActive] = useState(priority)
+  const [observedActive, setObservedActive] = useState(priority)
+  const isActive = active ?? observedActive
 
   useEffect(() => {
+    if (active !== undefined) return
+
     const el = ref.current
     if (!el) return
 
     const activate = () => {
-      setIsActive(true)
+      setObservedActive(true)
     }
 
     const deactivate = () => {
-      setIsActive(false)
+      setObservedActive(false)
       el.pause()
       el.removeAttribute('src')
       el.load()
@@ -41,7 +49,7 @@ export default function LazyVideo({
         else deactivate()
       },
       {
-        rootMargin: '150px 0px',
+        rootMargin,
         threshold: 0.25,
       },
     )
@@ -52,7 +60,7 @@ export default function LazyVideo({
       observer.disconnect()
       deactivate()
     }
-  }, [priority])
+  }, [priority, rootMargin, active])
 
   useEffect(() => {
     const el = ref.current
@@ -78,7 +86,7 @@ export default function LazyVideo({
       muted
       loop
       playsInline
-      preload={priority ? 'auto' : 'none'}
+      preload={priority || active ? 'auto' : 'none'}
     />
   )
 }

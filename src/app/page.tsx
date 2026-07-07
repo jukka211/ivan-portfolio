@@ -87,7 +87,7 @@ export default async function HomePage() {
             {projects.map((project, index) => {
               const imageUrl =
                 project.coverMedia?.mediaType === 'image' && project.coverMedia.image
-                  ? urlFor(project.coverMedia.image).width(1600).quality(90).url()
+                  ? urlFor(project.coverMedia.image).width(2400).quality(90).url()
                   : null
 
               const videoUrl =
@@ -115,7 +115,7 @@ export default async function HomePage() {
                           alt={project.title || 'Project cover'}
                           fill
                           className={styles.projectImage}
-                          sizes="(max-width: 1024px) 100vw, 58vw"
+                          sizes="(max-width: 1024px) 100vw, 67vw"
                           priority={index === 0}
                         />
                       ) : (
