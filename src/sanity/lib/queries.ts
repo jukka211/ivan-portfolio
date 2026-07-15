@@ -12,6 +12,10 @@ export const homePageQuery = groq`
     graphicTools[]{
       label,
       url
+    },
+    services[]{
+      label,
+      url
     }
   },
   "projects": *[_type == "project"] | order(order asc, _createdAt desc){
@@ -45,6 +49,97 @@ export const projectSlugsQuery = groq`
 }
 `
 
+export const projectCardsQuery = groq`
+*[_type == "project" && defined(slug.current)] | order(order asc, _createdAt desc){
+  _id,
+  title,
+  "slug": slug.current,
+  type,
+  year,
+  coverMedia{
+    mediaType,
+    fitMode,
+    background,
+    image,
+    video{
+      asset->{
+        url,
+        originalFilename,
+        mimeType
+      }
+    }
+  }
+}
+`
+
+export const projectSlidesBySlugQuery = groq`
+*[_type == "project" && slug.current == $slug][0]{
+  slides[]{
+    ...,
+    _key,
+    slideType,
+    background,
+    leftColumn1[]{
+      _key,
+      role,
+      name
+    },
+    leftColumn2[]{
+      _key,
+      role,
+      name
+    },
+    text,
+    mediaType,
+    fitMode,
+    image,
+    video{
+      asset->{
+        url,
+        originalFilename,
+        mimeType
+      }
+    }
+  }
+}
+`
+
+export const version3ProjectsQuery = groq`
+*[_type == "project" && defined(slug.current)] | order(order asc, _createdAt desc){
+  _id,
+  title,
+  "slug": slug.current,
+  type,
+  year,
+  excerpt,
+  coverMedia{
+    mediaType,
+    fitMode,
+    background,
+    image,
+    video{
+      asset->{
+        url,
+        originalFilename,
+        mimeType
+      }
+    }
+  },
+  credits{
+    leftColumn1[]{
+      _key,
+      role,
+      name
+    },
+    leftColumn2[]{
+      _key,
+      role,
+      name
+    }
+  }
+}
+`
+
 export const workSectionsQuery = groq`
 *[_type == "workSection"] | order(order asc, _createdAt asc){
   _id,
@@ -54,13 +149,38 @@ export const workSectionsQuery = groq`
   client,
   slides[]{
     _key,
-    mediaType,
-    image,
-    video{
-      asset->{
-        url,
-        originalFilename,
-        mimeType
+    layout,
+    cellA{
+      mediaType,
+      image,
+      video{
+        asset->{
+          url,
+          originalFilename,
+          mimeType
+        }
+      }
+    },
+    cellB{
+      mediaType,
+      image,
+      video{
+        asset->{
+          url,
+          originalFilename,
+          mimeType
+        }
+      }
+    },
+    cellC{
+      mediaType,
+      image,
+      video{
+        asset->{
+          url,
+          originalFilename,
+          mimeType
+        }
       }
     }
   }

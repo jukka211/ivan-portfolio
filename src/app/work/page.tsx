@@ -8,8 +8,7 @@ export const metadata: Metadata = {
   description: 'work.sukhov.xyz',
 }
 
-export type WorkSlide = {
-  _key?: string
+export type WorkMediaCell = {
   mediaType?: 'image' | 'video'
   image?: SanityImageSource
   video?: {
@@ -19,6 +18,21 @@ export type WorkSlide = {
       mimeType?: string
     }
   }
+}
+
+export type WorkSlideLayout =
+  | 'single'
+  | 'twoColumns'
+  | 'twoRows'
+  | 'leftRightStack'
+  | 'topBottomSplit'
+
+export type WorkSlide = {
+  _key?: string
+  layout?: WorkSlideLayout
+  cellA?: WorkMediaCell
+  cellB?: WorkMediaCell
+  cellC?: WorkMediaCell
 }
 
 export type WorkSection = {

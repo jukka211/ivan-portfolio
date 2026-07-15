@@ -6,7 +6,7 @@
   display: flex;
   flex-direction: column;
   align-items: flex-start;
-  color: #fff;
+  color: #000000;
   font-size: 0.9rem;
   line-height: 1.05;
 }
@@ -18,7 +18,7 @@
 .panel {
   width: min(90vw, 380px);
   padding: 8px 10px;
-  background: rgba(106, 107, 107, 0.7);
+  background: rgba(255, 255, 255, 0.7);
   box-shadow: 0 0 2px rgba(0, 0, 0, 0.25);
   border-radius: 8px;
   backdrop-filter: blur(40px);
@@ -48,7 +48,7 @@
   background: none;
   border: none;
   padding: 0;
-  color: #fff;
+  color: #000000;
   font: inherit;
   font-size: 0.9rem;
   cursor: pointer;
@@ -59,7 +59,7 @@
 .buttons > .navButton:first-child {
   text-align: left;
   padding-right: 16px;
-  border-right: solid 0.75px #fff;
+  border-right: solid 0.75px #000000;
 }
 
 .buttons > .navButton:last-child {
@@ -98,7 +98,7 @@
 
 .row {
   display: flex;
-  border-top: 1px solid #fff;
+  border-top: 1px solid #000000;
   padding: 4px 0;
 }
 

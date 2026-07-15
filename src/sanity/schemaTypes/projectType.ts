@@ -100,6 +100,33 @@ export const projectType = defineType({
       type: 'string',
     }),
     defineField({
+      name: 'excerpt',
+      title: 'Description',
+      description: 'Shown when the project row is expanded ("Open" state) on version-3.',
+      type: 'text',
+      rows: 4,
+    }),
+    defineField({
+      name: 'credits',
+      title: 'Credits',
+      description: 'Two credit columns shown alongside the description in the "Open" state on version-3.',
+      type: 'object',
+      fields: [
+        defineField({
+          name: 'leftColumn1',
+          title: 'Column 1',
+          type: 'array',
+          of: [defineArrayMember({type: 'creditItem'})],
+        }),
+        defineField({
+          name: 'leftColumn2',
+          title: 'Column 2',
+          type: 'array',
+          of: [defineArrayMember({type: 'creditItem'})],
+        }),
+      ],
+    }),
+    defineField({
       name: 'coverMedia',
       title: 'Cover media',
       type: 'object',

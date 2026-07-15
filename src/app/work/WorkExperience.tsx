@@ -6,11 +6,14 @@ import {urlFor} from '@/sanity/lib/image'
 import IntroSlideshow from './IntroSlideshow'
 import InfoMenu, {type WorkProjectInfo} from './InfoMenu'
 import SectionSlides from './SectionSlides'
-import type {WorkSection, WorkSlide} from './page'
+import type {WorkMediaCell, WorkSection, WorkSlide} from './page'
 import styles from './work.module.css'
 
-const isImageSlide = (slide: WorkSlide): slide is WorkSlide & {image: SanityImageSource} =>
-  slide.mediaType === 'image' && !!slide.image
+const cellsOf = (slide: WorkSlide): WorkMediaCell[] =>
+  [slide.cellA, slide.cellB, slide.cellC].filter((cell): cell is WorkMediaCell => !!cell)
+
+const isImageCell = (cell: WorkMediaCell): cell is WorkMediaCell & {image: SanityImageSource} =>
+  cell.mediaType === 'image' && !!cell.image
 
 const toProjectInfo = (section: WorkSection | undefined): WorkProjectInfo | null => {
   if (!section) return null
@@ -30,10 +33,11 @@ export default function WorkExperience({sections}: {sections: WorkSection[]}) {
   const introSlides = useMemo(() => {
     return sections
       .flatMap((section) => section.slides ?? [])
-      .filter(isImageSlide)
-      .map((slide, index) => ({
-        key: slide._key ?? `intro-${index}`,
-        url: urlFor(slide.image).width(1600).quality(80).url(),
+      .flatMap(cellsOf)
+      .filter(isImageCell)
+      .map((cell, index) => ({
+        key: `intro-${index}`,
+        url: urlFor(cell.image).width(1600).quality(80).url(),
         alt: '',
       }))
   }, [sections])

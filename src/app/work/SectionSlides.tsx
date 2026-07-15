@@ -4,10 +4,62 @@ import {useEffect, useRef, useState} from 'react'
 import Image from 'next/image'
 import {urlFor} from '@/sanity/lib/image'
 import LazyVideo from '@/app/LazyVideo'
-import type {WorkSection} from './page'
+import type {WorkMediaCell, WorkSection, WorkSlideLayout} from './page'
 import styles from './work.module.css'
 
 const SWIPE_THRESHOLD_PX = 40
+
+const layoutClass: Record<WorkSlideLayout, string> = {
+  single: styles.layoutSingle,
+  twoColumns: styles.layoutTwoColumns,
+  twoRows: styles.layoutTwoRows,
+  leftRightStack: styles.layoutLeftRightStack,
+  topBottomSplit: styles.layoutTopBottomSplit,
+}
+
+function Cell({
+  cell,
+  cellClassName,
+  priority,
+  active,
+}: {
+  cell: WorkMediaCell | undefined
+  cellClassName: string
+  priority: boolean
+  active: boolean
+}) {
+  if (!cell) return null
+
+  const imageUrl =
+    cell.mediaType === 'image' && cell.image
+      ? urlFor(cell.image).width(2400).quality(90).url()
+      : null
+  const videoUrl = cell.mediaType === 'video' ? cell.video?.asset?.url : null
+
+  return (
+    <div className={cellClassName}>
+      {videoUrl ? (
+        <LazyVideo
+          src={videoUrl}
+          className={styles.media}
+          priority={priority}
+          fitMode="cover"
+          active={active}
+        />
+      ) : imageUrl ? (
+        <Image
+          src={imageUrl}
+          alt=""
+          fill
+          className={styles.media}
+          style={{objectFit: 'cover'}}
+          sizes="100vw"
+          priority={priority}
+        />
+      ) : null}
+    </div>
+  )
+}
 
 export default function SectionSlides({
   section,
@@ -75,36 +127,33 @@ export default function SectionSlides({
       onTouchEnd={handleTouchEnd}
     >
       {slides.map((slide, index) => {
-        const imageUrl =
-          slide.mediaType === 'image' && slide.image
-            ? urlFor(slide.image).width(2400).quality(90).url()
-            : null
-        const videoUrl = slide.mediaType === 'video' ? slide.video?.asset?.url : null
+        const isPriority = index === 0
 
         return (
           <div
             key={slide._key ?? `${section._id}-${index}`}
             className={`${styles.slide} ${index === activeIndex ? styles.slideActive : ''}`}
           >
-            {videoUrl ? (
-              <LazyVideo
-                src={videoUrl}
-                className={styles.media}
-                priority={index === 0}
-                fitMode="cover"
+            <div className={`${styles.slideGrid} ${layoutClass[slide.layout ?? 'single']}`}>
+              <Cell
+                cell={slide.cellA}
+                cellClassName={styles.cellA}
+                priority={isPriority}
                 active={shouldLoad}
               />
-            ) : imageUrl ? (
-              <Image
-                src={imageUrl}
-                alt=""
-                fill
-                className={styles.media}
-                style={{objectFit: 'cover'}}
-                sizes="100vw"
-                priority={index === 0}
+              <Cell
+                cell={slide.cellB}
+                cellClassName={styles.cellB}
+                priority={isPriority}
+                active={shouldLoad}
               />
-            ) : null}
+              <Cell
+                cell={slide.cellC}
+                cellClassName={styles.cellC}
+                priority={isPriority}
+                active={shouldLoad}
+              />
+            </div>
           </div>
         )
       })}

@@ -1,0 +1,423 @@
+.page {
+  --gap: 4px;
+  --page-padding: 4px;
+  --cell: #000;
+  --grid-bg: #000000;
+  --label: #d6d6d6;
+
+  position: relative;
+  width: 100%;
+  height: 100dvh;
+  background: var(--grid-bg);
+  color: var(--label);
+  font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+  display: flex;
+  flex-direction: column;
+  gap: var(--gap);
+  padding: var(--page-padding);
+  box-sizing: border-box;
+  overflow: hidden;
+}
+
+.page * {
+  box-sizing: border-box;
+}
+
+.stage {
+  flex: 1;
+  display: flex;
+  min-height: 0;
+  touch-action: none;
+}
+
+/* nested splits: every container is a flex box, every child carries its own weight */
+.split {
+  display: flex;
+  gap: var(--gap);
+  min-width: 0;
+  min-height: 0;
+}
+.row {
+  flex-direction: row;
+}
+.col {
+  flex-direction: column;
+}
+
+.cell {
+  background: var(--cell);
+  color: var(--label);
+  display: grid;
+  place-items: center;
+  font-size: 13px;
+  cursor: grab;
+  user-select: none;
+  min-width: 0;
+  min-height: 0;
+}
+
+/* cells 1-4 are absolutely-positioned-content boxes — see .infoPanel /
+   .toolsGrid / .workScroll / .projectSlides — so their own size never leaks
+   from intrinsic content size into the flex-basis calculation. */
+.cell[data-id='1'],
+.cell[data-id='2'],
+.cell[data-id='3'],
+.cell[data-id='4'] {
+  position: relative;
+}
+
+
+.infoPanel {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  align-items: stretch;
+  padding: var(--gap);
+  font-size: 13px;
+  text-align: left;
+  gap: 16px;
+  overflow: auto;
+}
+
+.infoRow {
+  display: flex;
+  flex-direction: row;
+  align-items: flex-start;
+  gap: clamp(12px, 2.5vw, 32px);
+}
+
+.infoRowBottom {
+  flex-direction: column;
+  align-items: stretch;
+  gap: 10px;
+  border-top: 1px solid rgba(255, 255, 255, 0.2);
+  padding-top: 12px;
+}
+
+.infoName {
+  font-size: 13px;
+  color: #fff;
+  flex: 0 0 auto;
+  min-width: 90px;
+}
+
+.infoTopDetails {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.infoDesc {
+  line-height: 1.5;
+  color: var(--label);
+}
+
+.infoLinks {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.infoLink {
+  color: #fff;
+  text-decoration: none;
+  font-size: 13px;
+  width: fit-content;
+}
+.infoLink:hover {
+  color: var(--label);
+}
+
+.infoGroup {
+  display: flex;
+  flex-direction: row;
+  align-items: flex-start;
+  gap: clamp(12px, 2.5vw, 32px);
+}
+
+.infoGroup + .infoGroup {
+  border-top: 1px solid rgba(255, 255, 255, 0.2);
+  padding-top: 12px;
+}
+
+.infoLabel {
+  flex: 0 0 auto;
+  color: #fff;
+  font-size: 13px;
+  min-width: 90px;
+}
+
+.infoList {
+  flex: 1 1 auto;
+  display: grid;
+  grid-template-columns: 2fr 1.6fr 1fr;
+  column-gap: 12px;
+  row-gap: 4px;
+  min-width: 0;
+}
+
+.infoItem {
+  display: contents;
+}
+
+.infoItem span:first-child {
+  color: #fff;
+}
+.infoItem span:nth-child(2) {
+  color: var(--label);
+}
+.infoItem span:last-child {
+  color: var(--label);
+  text-align: right;
+}
+
+.toolsGrid {
+  position: absolute;
+  inset: var(--gap);
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  grid-template-rows: 1fr 1fr;
+  gap: var(--gap);
+}
+
+.toolItem {
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 12px;
+  font-size: 13px;
+  font-weight: 400;
+  color: var(--label);
+  overflow: hidden;
+  min-width: 0;
+  min-height: 0;
+}
+
+/* cell 3: horizontally scrolling work row — one row, auto-width columns */
+.workScroll {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: row;
+  align-items: stretch;
+  gap: var(--gap);
+  overflow-x: auto;
+  overflow-y: hidden;
+  touch-action: pan-x;
+  scrollbar-width: none;
+}
+.workScroll::-webkit-scrollbar {
+  display: none;
+}
+
+.workCard {
+  flex: 0 0 auto;
+  width: var(--card-w, 420px);
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  cursor: pointer;
+}
+
+.workCardImg {
+  position: relative;
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.workCardMedia {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+  background-color: transparent;
+  opacity: 1;
+  transition: opacity 0.2s ease;
+}
+
+.workCardMedia:hover {
+  opacity: 1;
+}
+
+.workCardMediaSelected,
+.workCardMediaSelected:hover {
+  background-color: #373737;
+  opacity: 1;
+}
+
+.workCardCaption {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 10px 14px;
+  color: #fff;
+  font-size: 13px;
+  transition: background-color 0.2s ease;
+}
+
+.workCardCaptionSelected {
+  background-color: #373737;
+}
+
+.workCardMeta {
+  display: flex;
+  gap: 20px;
+  color: var(--label);
+  white-space: nowrap;
+}
+
+/* cell 4: the clicked project's other slides — vertical scroll, one column */
+.projectSlides {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  scrollbar-width: none;
+}
+.projectSlides::-webkit-scrollbar {
+  display: none;
+}
+
+.slidePlaceholder {
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  color: var(--label);
+  font-size: 13px;
+  padding: 0 16px;
+}
+
+.projectSlide {
+  position: relative;
+  flex: 0 0 auto;
+  width: 100%;
+  background: #0a0a0a;
+}
+
+.slideWhite {
+  background: #fff;
+}
+
+.slideBlack {
+  background: #000;
+}
+
+.slideMedia {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+.creditsSlide {
+  flex: 0 0 auto;
+  width: 100%;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  background: #0a0a0a;
+  color: var(--label);
+  font-size: 13px;
+}
+
+.creditsSlide.slideWhite {
+  color: #000;
+}
+.creditsSlide.slideWhite .creditName {
+  color: #000;
+}
+
+.creditsColumns {
+  display: flex;
+  gap: clamp(12px, 2.5vw, 32px);
+}
+
+.creditsColumn {
+  flex: 1 1 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.creditRow {
+  display: flex;
+  gap: 12px;
+  padding: 2px 0;
+}
+
+.creditRole {
+  color: var(--label);
+  min-width: 90px;
+}
+
+.creditName {
+  color: #fff;
+}
+
+.creditsText {
+  color: var(--label);
+  line-height: 1.5;
+  white-space: pre-line;
+}
+
+/* the dragged cell leaves the flow and floats at the exact size it had */
+.isDragging {
+  position: fixed;
+  z-index: 10;
+  cursor: grabbing;
+  pointer-events: none;
+  box-shadow: 0 18px 50px rgba(0, 0, 0, 0.35);
+}
+
+/* holds the dragged cell's place in the layout, and shifts as you move */
+.ghost {
+  border: 2px dashed #bbb;
+  min-width: 0;
+  min-height: 0;
+}
+
+.bar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.switch {
+  position: fixed;
+  right: var(--page-padding, 4px);
+  bottom: var(--page-padding, 4px);
+  z-index: 20;
+  appearance: none;
+  border: 1px solid #000;
+  background: #fff;
+  color: #000;
+  font: inherit;
+  font-size: 13px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  padding: 8px 14px;
+  cursor: pointer;
+}
+.switch:hover {
+  background: #000;
+  color: #fff;
+}
+.switch:focus-visible {
+  outline: 2px solid #000;
+  outline-offset: 2px;
+}

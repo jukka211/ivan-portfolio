@@ -10,6 +10,8 @@ type LazyVideoProps = {
   rootMargin?: string
   /** When set, bypasses viewport-based lazy loading and directly controls activation. */
   active?: boolean
+  /** Fires once the video's real dimensions are known (native `loadedmetadata`). */
+  onLoadedMetadata?: (dimensions: {videoWidth: number; videoHeight: number}) => void
 }
 
 export default function LazyVideo({
@@ -19,6 +21,7 @@ export default function LazyVideo({
   fitMode = 'cover',
   rootMargin = '150px 0px',
   active,
+  onLoadedMetadata,
 }: LazyVideoProps) {
   const ref = useRef<HTMLVideoElement | null>(null)
   const [observedActive, setObservedActive] = useState(priority)
@@ -87,6 +90,14 @@ export default function LazyVideo({
       loop
       playsInline
       preload={priority || active ? 'auto' : 'none'}
+      onLoadedMetadata={
+        onLoadedMetadata
+          ? (event) => {
+              const el = event.currentTarget
+              onLoadedMetadata({videoWidth: el.videoWidth, videoHeight: el.videoHeight})
+            }
+          : undefined
+      }
     />
   )
 }

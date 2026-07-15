@@ -1,0 +1,325 @@
+/* tokens pulled from the Figma file: base type is Helvetica Neue 13px/13px,
+   no tracking; bg/fg are pure black/white with a muted #818181 label
+   color and a translucent white hairline border (rgba(255,255,255,.3),
+   matching the awards/services row strokes).
+   Defined on `.root` (display:contents, so it adds no box of its own) rather
+   than `.page` itself, because on mobile the nav bar renders as `.page`'s
+   *sibling* (see Version3Page.tsx) — it needs these custom properties too,
+   and CSS variables only cascade to descendants. */
+.root {
+  display: contents;
+  --fg: #fff;
+  --muted: #818181;
+  --border: rgba(255, 255, 255, 0.3);
+  --font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+  --text-size: 13px;
+  --line-height: 1.1;
+  --gutter: 116px;
+  --pad: 4px;
+  --gap-xs: 3px;
+  --gap-sm: 8px;
+  --gap-md: 12px;
+  --gap-lg: 32px;
+  --left-basis: 50%;
+  --right-basis: 50%;
+  /* matches a .dataRow's own rendered height (same padding/font/line-height)
+     so the mobile nav bar reads as just another row, not a distinct bar. */
+  --nav-height: 24px;
+}
+
+.page {
+  position: relative;
+  width: 100%;
+  height: 100dvh;
+  display: flex;
+  flex-direction: row;
+  background: #000;
+  color: var(--fg);
+  font-family: var(--font-family);
+  font-size: var(--text-size);
+  line-height: var(--line-height);
+  letter-spacing: 0;
+  overflow: hidden;
+}
+
+.page * {
+  box-sizing: border-box;
+}
+
+/* mobile-only top bar; hidden entirely on desktop, see the max-width:1100px
+   query below for its actual layout. */
+.mobileNav {
+  display: none;
+  font-family: var(--font-family);
+  font-size: var(--text-size);
+  box-sizing: border-box;
+}
+
+.mobileNav * {
+  box-sizing: border-box;
+}
+
+/* double-clicking a pane widens it and narrows the other — the same ratio
+   the Figma "state" variants use (960/960 collapsed -> ~1435/480). This is
+   independent of which project row is open. */
+.page[data-expanded='true'] {
+  --left-basis: 74.9%;
+  --right-basis: 25.1%;
+}
+
+.leftPane {
+  flex: 0 0 var(--left-basis);
+  min-width: 0;
+  display: flex;
+  flex-direction: row;
+  transition: flex-basis 0.4s ease;
+}
+
+.rightPane {
+  flex: 0 0 var(--right-basis);
+  min-width: 0;
+  overflow: hidden;
+  border-left: 1px solid var(--border);
+  transition: flex-basis 0.4s ease;
+}
+
+/* no inside padding: row borders should touch the column's own edge
+   directly, not float with a gap. Each row keeps its own internal padding
+   for text inset instead. min-height:0 stops a flex item from growing
+   past its stretched height to fit content — required for its own
+   overflow-y to actually kick in instead of pushing leftPane taller. */
+.infoColumn,
+.listColumn {
+  min-width: 0;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 100px;
+}
+
+/* leftPane defaults to 50% of the page, so a 2:3 grow ratio splits it into
+   infoColumn ~20% / listColumn ~30% of the full page width. */
+.infoColumn {
+  flex: 2 2 0;
+  border-right: 1px solid var(--border);
+}
+
+.listColumn {
+  flex: 3 3 0;
+  overflow-y: auto;
+}
+
+.row {
+  display: flex;
+  flex-direction: row;
+  align-items: flex-start;
+  gap: var(--gap-sm);
+  padding-top: 4px;
+  padding-left: 4px;
+}
+
+.gutter {
+  flex: 0 0 var(--gutter);
+  color: var(--fg);
+}
+
+.intro {
+  flex: 1 1 auto;
+  min-width: 0;
+
+  line-height: 1.1;
+  padding-left: 4px;
+  padding-right: 4px;
+}
+
+/* E-Mail and Instagram are their own rows (see .dataRow), not grouped
+   in one box; this wrapper just needs the first-row top border. */
+.contactList > .dataRow:first-child {
+  border-top: 1px solid var(--border);
+}
+
+/* standalone row (not part of a flush-stacked list), so it needs its own
+   top border, same as .contactList's first row. */
+.legalList > .dataRow:first-child {
+  border-top: 1px solid var(--border);
+}
+
+.legalGutter {
+  opacity: 0;
+}
+
+/* one row in any of the three list modules (projects/awards/services).
+   Every row supplies its own bottom+side borders; only a section's very
+   first row needs a top border too, since something above it (a previous
+   row) already supplies that shared line. Projects folds its own section
+   label into the first row the same way (see ProjectRow's sectionLabel
+   prop) rather than using a separate header row. */
+.dataRow {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  gap: var(--gap-sm);
+  padding: var(--pad);
+  border: none;
+  border-bottom: 1px solid var(--border);
+  background: none;
+  color: var(--fg);
+  text-decoration: none;
+  font: inherit;
+  letter-spacing: inherit;
+  text-align: left;
+  line-height: var(--line-height);
+}
+
+.awards > .dataRow:first-child,
+.services > .dataRow:first-child {
+  border-top: 1px solid var(--border);
+}
+
+.dataRow:hover {
+  background: #fff;
+  color: #000;
+  --muted: #000;
+}
+
+/* title | type | year — title/type share the remaining space evenly and
+   stay left-aligned in a fixed track; year is pinned to the row's right
+   edge and sized to its own text only (not a full column share). */
+.infoGrid {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: grid;
+  grid-template-columns: 2fr 1fr auto;
+  gap: var(--gap-md);
+  text-align: left;
+}
+
+/* services only has a label + a trailing "Expand" note (per Figma) */
+.serviceGrid {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: var(--gap-md);
+  text-align: left;
+}
+
+.muted {
+  color: var(--muted);
+}
+
+/* Mobile: two one-screen-at-a-time panels — Info/Lists (infoColumn +
+   listColumn, combined and stacked vertically) and Gallery (rightPane) — in
+   a horizontally swipeable, snapping carousel. `.page` itself is the scroll
+   container; `scroll-snap-type: x mandatory` plus `scroll-snap-align: start`
+   on each panel means a swipe always comes to rest with a panel's left edge
+   flush against the viewport's left edge, never half-scrolled between the
+   two. Order is: Info Lists (leftPane) first, then Gallery (rightPane) —
+   see the `.mobileNav` buttons and the scrollIntoView calls in
+   Version3Page.tsx that jump between them. */
+@media (max-width: 1100px) {
+  .root {
+    --text-size: 12.5px;
+  }
+
+  .mobileNav {
+    display: flex;
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    background: #000;
+    border-bottom: 1px solid var(--border);
+    z-index: 20;
+  }
+
+  /* same padding/font/line-height as .dataRow, so the bar's height matches
+     every other row on the page instead of an arbitrary nav-bar height. */
+  .mobileNavItem {
+    flex: 1 1 50%;
+    padding: var(--pad);
+    border: none;
+    appearance: none;
+    background: none;
+    color: var(--fg);
+    font: inherit;
+    font-size: var(--text-size);
+    line-height: var(--line-height);
+    text-align: center;
+    cursor: pointer;
+  }
+
+  .mobileNavItem:first-child {
+    border-right: 1px solid var(--border);
+  }
+
+  .mobileNavItem[data-active='true'] {
+    background: #fff;
+    color: #000;
+  }
+
+  .page {
+    margin-top: var(--nav-height);
+    height: calc(100dvh - var(--nav-height));
+    overflow-x: auto;
+    overflow-y: hidden;
+    scroll-snap-type: x mandatory;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .leftPane {
+    flex: 0 0 100vw;
+    width: 100vw;
+    order: 1;
+    flex-direction: column;
+    overflow-y: auto;
+    scroll-snap-align: start;
+    scroll-snap-stop: always;
+    gap: var(--gap-lg);
+  }
+
+  .rightPane {
+    flex: 0 0 100vw;
+    width: 100vw;
+    order: 2;
+    border-left: none;
+    scroll-snap-align: start;
+    scroll-snap-stop: always;
+  }
+
+  .infoColumn,
+  .listColumn {
+    flex: 0 0 auto;
+    width: 100%;
+    gap: var(--gap-lg);
+  }
+
+  /* per Figma (node 26:1382): infoColumn's three groups (title+intro,
+     contact, legal) are packed tightly with a 6px gap, not the desktop
+     column's large space-between spread; its content column also starts
+     ~82px in, narrower than desktop's --gutter. */
+  .infoColumn {
+    border-right: none;
+    border-bottom: 1px solid var(--border);
+    gap: 6px;
+  }
+
+  .gutter {
+    flex-basis: 82px;
+  }
+
+  /* title+intro sit side by side even at this width in Figma, with left
+     padding only — no top padding, unlike the desktop row. */
+  .row {
+    padding-top: 0;
+    padding-left: var(--pad);
+  }
+
+  /* :first-child matches the shared .dataRow border-bottom rule's
+     specificity, so it's needed here too to actually win and clear both
+     borders. */
+  .legalList > .dataRow:first-child {
+    border: none;
+  }
+}

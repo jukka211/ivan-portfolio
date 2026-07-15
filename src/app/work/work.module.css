@@ -2,7 +2,7 @@
   position: relative;
   width: 100%;
   height: 100dvh;
-  background: #000000;
+  background: #ffffff;
   color: #fff;
   overflow: hidden;
   font-family: "helvetica-neue-lt-pro", sans-serif;
@@ -39,6 +39,129 @@
   width: 100%;
   height: 100%;
   display: block;
-  object-fit: cover;
-  object-position: top;
+  object-fit: contain;
+}
+
+.slideGrid {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  display: grid;
+}
+
+.layoutSingle {
+  grid-template-columns: 1fr;
+  grid-template-rows: 1fr;
+  grid-template-areas: "a";
+}
+
+.layoutTwoColumns {
+  grid-template-columns: 1fr 1fr;
+  grid-template-rows: 1fr;
+  grid-template-areas: "a b";
+}
+
+.layoutTwoRows {
+  grid-template-columns: 1fr;
+  grid-template-rows: 1fr 1fr;
+  grid-template-areas:
+    "a"
+    "b";
+}
+
+.layoutLeftRightStack {
+  grid-template-columns: 1fr 1fr;
+  grid-template-rows: 1fr 1fr;
+  grid-template-areas:
+    "a b"
+    "a c";
+}
+
+.layoutTopBottomSplit {
+  grid-template-columns: 1fr 1fr;
+  grid-template-rows: 1fr 1fr;
+  grid-template-areas:
+    "a a"
+    "b c";
+}
+
+.cellA,
+.cellB,
+.cellC {
+  position: relative;
+  overflow: hidden;
+}
+
+.cellA {
+  grid-area: a;
+}
+
+.cellB {
+  grid-area: b;
+}
+
+.cellC {
+  grid-area: c;
+}
+
+@media (max-width: 767px) {
+  .page {
+    height: auto;
+    min-height: 100dvh;
+    overflow: visible;
+  }
+
+  .scroller {
+    height: auto;
+    overflow-y: visible;
+    scroll-snap-type: none;
+  }
+
+  .section {
+    height: auto;
+    min-height: 0;
+    scroll-snap-align: none;
+    overflow: visible;
+  }
+
+  .slide {
+    position: static;
+    inset: auto;
+    display: none;
+  }
+
+  .slide.slideActive {
+    display: block;
+  }
+
+  .slideGrid {
+    height: auto;
+  }
+
+  .layoutSingle,
+  .layoutTwoColumns {
+    grid-template-rows: auto;
+  }
+
+  .layoutTwoRows,
+  .layoutLeftRightStack,
+  .layoutTopBottomSplit {
+    grid-template-rows: auto auto;
+  }
+
+  .cellA,
+  .cellB,
+  .cellC {
+    height: auto;
+  }
+
+  /* Next.js Image (fill mode) and LazyVideo set position/size/object-fit
+     inline; !important is needed here to let the media size itself from
+     its own intrinsic dimensions instead of being cropped to a fixed box. */
+  .media {
+    position: static !important;
+    width: 100% !important;
+    height: auto !important;
+    object-fit: unset !important;
+  }
 }

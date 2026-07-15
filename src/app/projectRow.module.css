@@ -1,0 +1,132 @@
+/* inherits --border / --gutter / --pad / --gap-sm / --gap-md / --muted / --fg
+   from the .page tokens in version3.module.css (custom properties cascade
+   through the DOM regardless of CSS module). */
+
+/* border-top is intentionally omitted for every row but the first — a
+   previous row always supplies that shared line already. No left/right
+   border either, matching the awards/services rows. */
+.row {
+  border: none;
+  border-bottom: 1px solid var(--border);
+}
+
+.row:first-child {
+  border-top: 1px solid var(--border);
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  gap: var(--gap-sm);
+  padding: var(--pad);
+  background: none;
+  border: none;
+  font: inherit;
+  letter-spacing: inherit;
+  color: var(--fg);
+  text-align: left;
+  cursor: pointer;
+}
+
+.header:hover {
+  background: #fff;
+  color: #000;
+  --muted: #000;
+}
+
+.description {
+  display: grid;
+  grid-template-rows: 0fr;
+  transition: grid-template-rows 0.35s ease;
+  --line-height: 1.1;
+}
+
+.row[data-open] .description {
+  grid-template-rows: 1fr;
+}
+
+.descriptionInner {
+  overflow: hidden;
+  min-height: 0;
+}
+
+/* Figma pads the open description with a generous 200px above/below to
+   center the (usually short) excerpt+credits within the tall open row;
+   clamped here so it doesn't eat the whole viewport on short screens. */
+.descriptionContent {
+  display: flex;
+  flex-direction: column;
+  gap: var(--gap-md);
+  padding: clamp(24px, 20vh, 400px) var(--pad);
+  border-top: 1px solid var(--border);
+}
+
+.excerptRow {
+  display: flex;
+  flex-direction: row;
+  align-items: flex-start;
+  gap: var(--gap-sm);
+}
+
+.excerpt {
+  flex: 1 1 auto;
+  min-width: 0;
+  margin: 0;
+  color: var(--fg);
+  --line-height: 1.1;
+}
+
+.credits {
+  display: flex;
+  flex-direction: row;
+  gap: var(--gap-lg);
+  padding-left: calc(var(--gutter) + var(--gap-sm));
+}
+
+.creditColumn {
+  flex: 1 1 0;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--gap-xs);
+}
+
+.creditItem {
+  display: flex;
+  flex-direction: column;
+}
+
+@media (max-width: 1100px) {
+  .descriptionContent {
+    padding: 60px var(--pad);
+  }
+
+  /* row's own title/type/year grid can wrap onto two lines at this width;
+     keep the "Projects:" label pinned to the top instead of centered. */
+  .header {
+    align-items: flex-start;
+  }
+}
+
+@media (max-width: 640px) {
+  .excerptRow {
+    flex-direction: column;
+    gap: var(--gap-xs);
+  }
+
+  /* .gutter's flex-basis (var(--gutter)) sizes it as a *width* in the row
+     layout used everywhere else; once .excerptRow stacks to a column here,
+     that same flex-basis is read as a *height* instead, forcing "Description"
+     into an ~82px-tall box. Resetting it to auto lets the label size to its
+     own single line again. */
+  .excerptGutter {
+    flex: 0 0 auto;
+  }
+
+  .credits {
+    padding-left: 0;
+    flex-direction: column;
+    gap: var(--gap-sm);
+  }
+}

@@ -88,6 +88,40 @@ export const siteSettingsType = defineType({
         },
       ],
     }),
+    defineField({
+      name: 'services',
+      title: 'Services',
+      description: 'Service offerings shown in the "Services:" list (distinct from Graphic Tools).',
+      type: 'array',
+      of: [
+        {
+          type: 'object',
+          fields: [
+            defineField({
+              name: 'label',
+              title: 'Label',
+              type: 'string',
+            }),
+            defineField({
+              name: 'url',
+              title: 'URL',
+              type: 'url',
+            }),
+          ],
+          preview: {
+            select: {
+              title: 'label',
+              subtitle: 'url',
+            },
+          },
+        },
+      ],
+      initialValue: [
+        {_type: 'object', label: 'Brand Identity Systems'},
+        {_type: 'object', label: 'Web Design, UX Analyse & Strategy'},
+        {_type: 'object', label: 'Generative Brand Tools'},
+      ],
+    }),
   ],
   preview: {
     prepare() {
