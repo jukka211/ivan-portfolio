@@ -80,7 +80,7 @@
 .credits {
   display: flex;
   flex-direction: row;
-  gap: var(--gap-lg);
+  gap: 32px;
   padding-left: calc(var(--gutter) + var(--gap-sm));
 }
 
@@ -99,7 +99,10 @@
 
 @media (max-width: 1100px) {
   .descriptionContent {
-    padding: 60px var(--pad);
+    padding: 4px var(--pad);
+    padding-top: 0px;
+    border-top: 0px;
+
   }
 
   /* row's own title/type/year grid can wrap onto two lines at this width;
@@ -122,6 +125,7 @@
      own single line again. */
   .excerptGutter {
     flex: 0 0 auto;
+    display:none;
   }
 
   .credits {

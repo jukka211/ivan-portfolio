@@ -19,7 +19,7 @@
   --gap-xs: 3px;
   --gap-sm: 8px;
   --gap-md: 12px;
-  --gap-lg: 32px;
+  --gap-lg: 48px;
   --left-basis: 50%;
   --right-basis: 50%;
   /* matches a .dataRow's own rendered height (same padding/font/line-height)
@@ -172,6 +172,15 @@
   line-height: var(--line-height);
 }
 
+/* .projects otherwise only appears inside a @media-scoped selector (see the
+   mobile .muted rule below) — CSS modules doesn't export a class name that's
+   never referenced by a top-level rule, so this section's own className
+   silently resolves to nothing without this. display:block is already a
+   <section>'s default; this exists purely so the class exists at all. */
+.projects {
+  display: block;
+}
+
 .awards > .dataRow:first-child,
 .services > .dataRow:first-child {
   border-top: 1px solid var(--border);
@@ -302,7 +311,7 @@
   .infoColumn {
     border-right: none;
     border-bottom: 1px solid var(--border);
-    gap: 6px;
+    gap: 0px;
   }
 
   .gutter {
@@ -321,5 +330,22 @@
      borders. */
   .legalList > .dataRow:first-child {
     border: none;
+  }
+
+  /* .infoGrid is title | type-or-result | year — hide just the middle
+     (muted) column on mobile, keep the year (also muted, but the last
+     column) visible. Both columns share the .muted class with nothing else
+     to tell them apart, so this targets them by position instead. */
+  .projects .infoGrid > *:nth-child(2),
+  .awards .infoGrid > *:nth-child(2) {
+    display: none;
+  }
+
+  /* display:none removes the middle item from grid placement entirely, so
+     without this the year auto-flows into its now-empty column (the 1fr
+     track) instead of staying in its own auto-sized, right-pinned one. */
+  .projects .infoGrid > *:nth-child(3),
+  .awards .infoGrid > *:nth-child(3) {
+    grid-column: 3;
   }
 }

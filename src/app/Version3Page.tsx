@@ -5,7 +5,6 @@ import ProjectRow from './ProjectRow'
 import ImageSlider from './ImageSlider'
 import ServicesPanel from './ServicesPanel'
 import styles from './version3.module.css'
-
 import type {Award, Project, ServiceItem, SiteSettings} from './types'
 
 const fallbackAwards: Award[] = [
