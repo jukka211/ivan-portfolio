@@ -3,10 +3,10 @@
 import styles from './servicesPanel.module.css'
 import type {ServiceItem} from './types'
 
-// Static for now, matching the Figma copy exactly — move to a Sanity field
-// (like `services`/`credits`/`excerpt`) if this needs to be editable later.
-// Keyed by the service's own label, so each service row opens its own
-// breakdown instead of one shared generic list.
+// Mirrors each service's own `details` field (Sanity Studio: Services / List
+// of Services) — used only as a fallback for services edited before that
+// field existed. Keyed by the service's own label, so each service row opens
+// its own breakdown instead of one shared generic list.
 const SERVICE_DETAILS: Record<string, string[]> = {
   'Brand Identity Systems': [
     'Positioning, naming direction, and verbal tone',
@@ -51,8 +51,11 @@ export default function ServicesPanel({
   activeIndex: number | null
   onActiveIndexChange: (index: number | null) => void
 }) {
+  const activeService = services.find((service) => service.label === activeServiceLabel)
   const details =
-    (activeServiceLabel && SERVICE_DETAILS[activeServiceLabel]) || FALLBACK_SERVICE_DETAILS
+    (activeService?.details?.length ? activeService.details : null) ||
+    (activeServiceLabel && SERVICE_DETAILS[activeServiceLabel]) ||
+    FALLBACK_SERVICE_DETAILS
 
   if (activeIndex !== null) {
     // The Detail Open title stays the general "Services:" list — not the

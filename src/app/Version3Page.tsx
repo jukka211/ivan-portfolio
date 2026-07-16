@@ -120,6 +120,16 @@ export default function Version3Page({
     setOpenSlug(null)
   }
 
+  const openSendRequestForm = () => {
+    setShowServicesDetails(true)
+    setActiveServiceLabel(null)
+    setActiveServiceIndex(0)
+    setOpenSlug(null)
+    if (window.matchMedia('(max-width: 1100px)').matches) {
+      scrollToPanel(rightPaneRef)
+    }
+  }
+
   return (
     <div className={styles.root}>
       {/* mobile only (see version3.module.css); a fixed sibling of .page so
@@ -172,6 +182,10 @@ export default function Version3Page({
                 <span className={styles.gutter} />
                 <span>Instagram</span>
               </a>
+              <button type="button" className={styles.dataRow} onClick={openSendRequestForm}>
+                <span className={styles.gutter} />
+                <span>Send Request</span>
+              </button>
             </div>
 
             <div className={styles.legalList}>
@@ -202,16 +216,34 @@ export default function Version3Page({
             </section>
 
             <section className={styles.awards}>
-              {awards.map((award, index) => (
-                <div className={styles.dataRow} key={`${award.name}-${index}`}>
-                  <span className={styles.gutter}>{index === 0 ? 'Awards:' : ''}</span>
-                  <div className={styles.infoGrid}>
-                    <span>{award.name}</span>
-                    <span className={styles.muted}>{award.result}</span>
-                    <span className={styles.muted}>{award.year}</span>
+              {awards.map((award, index) => {
+                const row = (
+                  <>
+                    <span className={styles.gutter}>{index === 0 ? 'Awards:' : ''}</span>
+                    <div className={styles.infoGrid}>
+                      <span>{award.name}</span>
+                      <span className={styles.muted}>{award.result}</span>
+                      <span className={styles.muted}>{award.year}</span>
+                    </div>
+                  </>
+                )
+
+                return award.url ? (
+                  <a
+                    href={award.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className={styles.dataRow}
+                    key={`${award.name}-${index}`}
+                  >
+                    {row}
+                  </a>
+                ) : (
+                  <div className={styles.dataRow} key={`${award.name}-${index}`}>
+                    {row}
                   </div>
-                </div>
-              ))}
+                )
+              })}
             </section>
 
             <section className={styles.services}>

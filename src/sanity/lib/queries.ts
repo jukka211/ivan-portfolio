@@ -15,7 +15,8 @@ export const homePageQuery = groq`
     },
     services[]{
       label,
-      url
+      url,
+      details
     }
   },
   "projects": *[_type == "project"] | order(order asc, _createdAt desc){

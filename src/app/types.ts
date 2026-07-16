@@ -4,6 +4,7 @@ export type Award = {
   name?: string
   result?: string
   year?: string
+  url?: string
 }
 
 export type GraphicTool = {
@@ -14,6 +15,7 @@ export type GraphicTool = {
 export type ServiceItem = {
   label?: string
   url?: string
+  details?: string[]
 }
 
 export type SiteSettings = {

@@ -46,7 +46,14 @@ export const siteSettingsType = defineType({
             defineField({name: 'name', title: 'Name', type: 'string'}),
             defineField({name: 'result', title: 'Result', type: 'string'}),
             defineField({name: 'year', title: 'Year', type: 'string'}),
+            defineField({name: 'url', title: 'URL Link', type: 'url'}),
           ],
+          preview: {
+            select: {
+              title: 'name',
+              subtitle: 'result',
+            },
+          },
         },
       ],
     }),
@@ -99,13 +106,20 @@ export const siteSettingsType = defineType({
           fields: [
             defineField({
               name: 'label',
-              title: 'Label',
+              title: 'Name of Service',
               type: 'string',
             }),
             defineField({
               name: 'url',
               title: 'URL',
               type: 'url',
+            }),
+            defineField({
+              name: 'details',
+              title: 'List of Services',
+              description: 'The breakdown shown when this service is opened in the Services panel.',
+              type: 'array',
+              of: [{type: 'string'}],
             }),
           ],
           preview: {
@@ -117,9 +131,28 @@ export const siteSettingsType = defineType({
         },
       ],
       initialValue: [
-        {_type: 'object', label: 'Brand Identity Systems'},
+        {
+          _type: 'object',
+          label: 'Brand Identity Systems',
+          details: [
+            'Positioning, naming direction, and verbal tone',
+            'Logo, typographic system, and colour architecture',
+            'Grid and layout systems for print and screen',
+            'Brand book Digital Platform',
+            'Rollout across web, print, and social templates',
+          ],
+        },
         {_type: 'object', label: 'Web Design, UX Analyse & Strategy'},
-        {_type: 'object', label: 'Generative Brand Tools'},
+        {
+          _type: 'object',
+          label: 'Generative Brand Tools',
+          details: [
+            'Custom tools that let teams produce on-brand assets themselves',
+            'Generative pattern, poster, and identity systems (p5.js / Canvas)',
+            'Design-to-production automation for catalogues and large data sets',
+            'Screen and exhibition pieces built on the same system',
+          ],
+        },
       ],
     }),
   ],
