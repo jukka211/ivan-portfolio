@@ -76,11 +76,49 @@
 }
 
 .rightPane {
+  position: relative;
   flex: 0 0 var(--right-basis);
   min-width: 0;
   overflow: hidden;
   border-left: 1px solid var(--border);
   transition: flex-basis 0.4s ease;
+}
+
+/* toggles --left-basis/--right-basis above (see .page[data-expanded]) —
+   replaces the old double-click-to-resize gesture. Square, sized to match
+   a .dataRow's own height (--nav-height), pinned to the pane's own top-left
+   corner the same way rows sit flush against a pane's edge with no gap.
+   White fill (not the page's black) because Vector.svg's stroke is a dark
+   gray, drawn for a light background. */
+.paneToggle {
+  position: absolute;
+  top: 0;
+  left: 0;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--nav-height);
+  height: var(--nav-height);
+  padding: 0;
+  border: 1px solid var(--border);
+  background: none;
+  appearance: none;
+  cursor: pointer;
+}
+
+.paneToggle:hover {
+  background: #fff;
+}
+
+.paneToggleIcon {
+  width: 10px;
+  height: 10px;
+  transition: transform 0.3s ease;
+}
+
+.paneToggle[data-expanded] .paneToggleIcon {
+  transform: rotate(180deg);
 }
 
 /* no inside padding: row borders should touch the column's own edge

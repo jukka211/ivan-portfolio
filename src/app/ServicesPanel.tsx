@@ -1,5 +1,6 @@
 'use client'
 
+import {useState} from 'react'
 import styles from './servicesPanel.module.css'
 import type {ServiceItem} from './types'
 
@@ -19,7 +20,6 @@ const SERVICE_DETAILS: Record<string, string[]> = {
     'Custom tools that let teams produce on-brand assets themselves',
     'Generative pattern, poster, and identity systems (p5.js / Canvas)',
     'Design-to-production automation for catalogues and large data sets',
-    'Screen and exhibition pieces built on the same system',
   ],
 }
 
@@ -30,15 +30,14 @@ const FALLBACK_SERVICE_DETAILS = [
   'Front-end development in Next.js / TypeScript.',
   'Headless CMS architecture (Sanity).',
   'Motion and interaction design, implemented.',
-  'Performance-focused, accessibility-aware.',
 ]
 
-const INTRO_TEXT_1 =
-  "Lorem Ipsum is simply dummy text of the printing and typesetting industry. Lorem Ipsum has been the industry's standard dummy."
-const INTRO_TEXT_2 =
-  'Dummy text ever since 1966, when designers at Letraset and James Mosley, the librarian at St Bride Printing Library in London.'
 const FOOTER_TEXT =
-  "Lorem Ipsum is simply dummy text of the printing and typesetting industry. Lorem Ipsum has been the industry's standard dummy text ever since 1966, when designers at Letraset and James Mosley, the librarian at St Bride Printing Library in London."
+  "I reply to every enquiry within two working days. Your details are used only to answer you — not stored beyond that, not passed on."
+
+// Matches the recipient hardcoded in /api/send-request — shown only as a
+// fallback contact if that request itself fails to send.
+const TO_EMAIL = 'ivan@sukhov.xyz'
 
 export default function ServicesPanel({
   services,
@@ -57,34 +56,49 @@ export default function ServicesPanel({
     (activeServiceLabel && SERVICE_DETAILS[activeServiceLabel]) ||
     FALLBACK_SERVICE_DETAILS
 
-  if (activeIndex !== null) {
-    // The Detail Open title stays the general "Services:" list — not the
-    // specific statement clicked into — regardless of which row opened it.
-    const title = `Services: ${services.map((service) => service.label).filter(Boolean).join(',')}`
+  const [name, setName] = useState('')
+  const [email, setEmail] = useState('')
+  const [message, setMessage] = useState('')
+  const [status, setStatus] = useState<'idle' | 'sending' | 'sent' | 'error'>('idle')
 
+  if (activeIndex !== null) {
     return (
       <div className={styles.detailOpen}>
-        <button type="button" className={styles.headline} onClick={() => onActiveIndexChange(null)}>
-          {title}
-        </button>
+        <p className={styles.headline}>
+          Tell me what you're working on. A rough idea is enough to start from — budget, timeline and
+          scope can be worked out together.
+        </p>
 
         <form
           className={styles.form}
-          onSubmit={(event) => {
+          onSubmit={async (event) => {
             event.preventDefault()
-            // TODO: wire up to Resend once the email-sending API is in place.
+            setStatus('sending')
+
+            try {
+              const res = await fetch('/api/send-request', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({name, email, message}),
+              })
+              if (!res.ok) throw new Error()
+              setStatus('sent')
+              setName('')
+              setEmail('')
+              setMessage('')
+            } catch {
+              setStatus('error')
+            }
           }}
         >
-          <div className={styles.formIntro}>
-            <p>{INTRO_TEXT_1}</p>
-            <p>{INTRO_TEXT_2}</p>
-          </div>
-
           <textarea
             className={styles.textarea}
             placeholder="Your Request"
             aria-label="Your Request"
             rows={4}
+            value={message}
+            onChange={(event) => setMessage(event.target.value)}
+            required
           />
 
           <div className={styles.formRow}>
@@ -93,13 +107,29 @@ export default function ServicesPanel({
               type="text"
               placeholder="Full Name"
               aria-label="Full Name"
+              value={name}
+              onChange={(event) => setName(event.target.value)}
             />
-            <input className={styles.input} type="email" placeholder="E-Mail" aria-label="E-Mail" />
-            <button type="submit" className={styles.send}>
-              Send
+            <input
+              className={styles.input}
+              type="email"
+              placeholder="E-Mail"
+              aria-label="E-Mail"
+              value={email}
+              onChange={(event) => setEmail(event.target.value)}
+              required
+            />
+            <button type="submit" className={styles.send} disabled={status === 'sending' || status === 'sent'}>
+              {status === 'sending' ? 'Sending…' : status === 'sent' ? 'Sent' : 'Send'}
             </button>
           </div>
         </form>
+
+        {status === 'error' && (
+          <p className={styles.footerText}>
+            Something went wrong sending that — please try again or email me directly at {TO_EMAIL}.
+          </p>
+        )}
 
         <p className={styles.footerText}>{FOOTER_TEXT}</p>
       </div>

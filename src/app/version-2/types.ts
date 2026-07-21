@@ -53,4 +53,50 @@ export type CreditsSlide = {
   text?: string
 }
 
-export type ProjectSlide = MediaSlide | CreditsSlide
+export type BigTextSlide = {
+  _key?: string
+  slideType: 'bigText'
+  text?: string
+}
+
+export type TwoColumnTextSlide = {
+  _key?: string
+  slideType: 'twoColumnText'
+  title?: string
+  text?: string
+}
+
+export type SpecItem = {
+  _key?: string
+  label?: string
+  value?: string
+}
+
+export type TechSpecsSlide = {
+  _key?: string
+  slideType: 'techSpecs'
+  title?: string
+  specs?: SpecItem[] | null
+}
+
+export type ColumnMedia = {
+  mediaType?: 'image' | 'video'
+  image?: SanityImageSource
+  video?: VideoAsset
+}
+
+export type TwoColumnImageSlide = {
+  _key?: string
+  slideType: 'twoColumnImage'
+  fitMode?: MediaFit
+  leftColumn?: ColumnMedia
+  rightColumn?: ColumnMedia
+}
+
+export type ProjectSlide =
+  | MediaSlide
+  | CreditsSlide
+  | BigTextSlide
+  | TwoColumnTextSlide
+  | TechSpecsSlide
+  | TwoColumnImageSlide

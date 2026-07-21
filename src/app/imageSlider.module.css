@@ -61,3 +61,121 @@
   color: var(--muted);
   text-align: center;
 }
+
+/* big text slide: full block width, same statement-sized type as the
+   Services rows (servicesPanel.module.css's .row) */
+.bigText {
+  width: 100%;
+  border-top: 1px solid var(--border);
+  color: var(--fg);
+  font-family: var(--font-family);
+  font-size: clamp(20px, 4vw, 56px);
+  line-height: 0.95;
+  letter-spacing: -0.02em;
+  white-space: pre-line;
+}
+
+/* two column text slide: title | body copy, 50/50 */
+.twoColumnText {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--gap-lg);
+  width: 100%;
+  border-top: 1px solid var(--border);
+}
+
+.columnTitle {
+  color: var(--fg);
+}
+
+.columnBody {
+  color: var(--fg);
+  font-size: var(--text-size);
+  line-height: var(--line-height);
+  white-space: pre-line;
+}
+
+/* tech specs slide: title | rows of label/value pairs, 50/50 */
+.techSpecs {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--gap-lg);
+  width: 100%;
+  border-top: 1px solid var(--border);
+}
+
+.techSpecsRows {
+  display: flex;
+  flex-direction: column;
+}
+
+/* fixed 2:1 ratio (not auto-sized to each label's own text) so the value
+   column starts at the same position in every row, regardless of how long
+   any given label is. */
+.techSpecsRow {
+  display: grid;
+  grid-template-columns: 2fr 1fr;
+  column-gap: var(--gap-md);
+  padding: var(--pad);
+  font-size: var(--text-size);
+  line-height: var(--line-height);
+  color: var(--fg);
+  border-bottom: 1px solid var(--border);
+}
+
+.techSpecsRows > .techSpecsRow:first-child {
+  border-top: 1px solid var(--border);
+}
+
+.techSpecsLabel {
+  color: var(--muted);
+}
+
+/* two column image slide: two cover-fit images side by side with a gap,
+   fixed to a 50vh-tall box regardless of either media's own dimensions */
+.twoColumnImagesSlide {
+  height: 50vh;
+}
+
+.twoColumnImages {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  /* without an explicit row track, percentage heights on the image/video
+     children below don't reliably resolve against this container's own
+     height — they can render at their intrinsic aspect ratio instead and
+     overflow, which clips as if cropped even in `contain` mode. */
+  grid-template-rows: 1fr;
+  gap: var(--gap-md);
+  width: 100%;
+  height: 100%;
+}
+
+.twoColumnImage {
+  display: block;
+  width: 100%;
+  height: 100%;
+  /* a grid item's default min-height/min-width is `auto`, which for a
+     replaced element with an intrinsic aspect ratio (image/video) resolves
+     to its own content-based size — that floor stops the row track from
+     ever shrinking to the 100%/1fr above, so it grows past the slide's
+     fixed height instead and gets clipped, looking like a cover-crop even
+     in `contain` mode. Zeroing it out lets the track size to the slide. */
+  min-width: 0;
+  min-height: 0;
+}
+
+@media (max-width: 1100px) {
+  .twoColumnText,
+  .techSpecs {
+    grid-template-columns: 1fr;
+    gap: var(--gap-md);
+  }
+
+  /* stacked instead of side-by-side — split the same fixed 90vh box into
+     two even rows rather than letting each collapse to its content size. */
+  .twoColumnImages {
+    grid-template-columns: 1fr;
+    grid-template-rows: 1fr 1fr;
+    gap: var(--gap-md);
+  }
+}

@@ -68,41 +68,19 @@
 }
 
 .headline {
-  display: block;
   width: 100%;
-  background: none;
-  border: none;
-  appearance: none;
+  margin: 0;
   color: var(--fg);
   font: inherit;
   text-align: left;
-  cursor: pointer;
   font-size: clamp(20px, 3.2vw, 44px);
   line-height: 1.1;
-}
-
-.headline:hover {
-  color: var(--muted);
 }
 
 .form {
   display: flex;
   flex-direction: column;
   gap: 7px;
-}
-
-.formIntro {
-  display: flex;
-  flex-direction: row;
-  gap: 7px;
-  font-size: var(--text-size);
-  line-height: 1.4;
-  color: var(--fg);
-}
-.formIntro p {
-  flex: 1 1 0;
-  min-width: 0;
-  margin: 0;
 }
 
 .textarea,

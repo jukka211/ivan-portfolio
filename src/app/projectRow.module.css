@@ -29,7 +29,8 @@
   cursor: pointer;
 }
 
-.header:hover {
+.header:hover,
+.row[data-open] .header {
   background: #fff;
   color: #000;
   --muted: #000;
@@ -55,7 +56,7 @@
    center the (usually short) excerpt+credits within the tall open row;
    clamped here so it doesn't eat the whole viewport on short screens. */
 .descriptionContent {
-  display: flex;
+  display: none;
   flex-direction: column;
   gap: var(--gap-md);
   padding: clamp(24px, 20vh, 400px) var(--pad);

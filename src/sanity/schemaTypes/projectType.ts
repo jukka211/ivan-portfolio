@@ -158,6 +158,18 @@ export const projectType = defineType({
         defineArrayMember({
           type: 'creditsSlide',
         }),
+        defineArrayMember({
+          type: 'bigTextSlide',
+        }),
+        defineArrayMember({
+          type: 'twoColumnTextSlide',
+        }),
+        defineArrayMember({
+          type: 'techSpecsSlide',
+        }),
+        defineArrayMember({
+          type: 'twoColumnImageSlide',
+        }),
       ],
     }),
   ],

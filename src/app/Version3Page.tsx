@@ -22,26 +22,6 @@ const fallbackServices: ServiceItem[] = [
   {label: 'Generative Brand Tools'},
 ]
 
-const DOUBLE_CLICK_MS = 400
-
-// A real `onDoubleClick` misfires here: the pane's own single-click handlers
-// (opening a project row, cycling the image slider) trigger a re-render
-// between the two clicks, which breaks the browser's native double-click
-// detection on that target. Tracking the timing ourselves on the bubbled
-// `onClick` sidesteps that entirely.
-function useDoubleClick(onDouble: () => void) {
-  const lastClickAt = useRef(0)
-  return () => {
-    const now = Date.now()
-    if (now - lastClickAt.current < DOUBLE_CLICK_MS) {
-      lastClickAt.current = 0
-      onDouble()
-    } else {
-      lastClickAt.current = now
-    }
-  }
-}
-
 export default function Version3Page({
   siteSettings,
   projects,
@@ -63,11 +43,9 @@ export default function Version3Page({
   // service row opens its own set of statements, not a shared generic list.
   const [activeServiceLabel, setActiveServiceLabel] = useState<string | null>(null)
   // Pane width (columns vs. image slider) is a separate, explicit choice —
-  // only a double-click on either pane resizes them; opening a project row
-  // no longer does this on its own.
+  // only the toggle icon in the right pane's corner resizes them; opening a
+  // project row no longer does this on its own.
   const [paneExpanded, setPaneExpanded] = useState(false)
-  const handleLeftPaneClick = useDoubleClick(() => setPaneExpanded(true))
-  const handleRightPaneClick = useDoubleClick(() => setPaneExpanded(false))
 
   // Mobile carousel: `.leftPane` (Info/Lists, combined) and `.rightPane`
   // (Gallery) become one-screen-at-a-time snap panels (see
@@ -158,7 +136,7 @@ export default function Version3Page({
         data-expanded={paneExpanded ? 'true' : undefined}
         onScroll={handlePageScroll}
       >
-        <div className={styles.leftPane} onClick={handleLeftPaneClick} ref={leftPaneRef}>
+        <div className={styles.leftPane} ref={leftPaneRef}>
           <div className={styles.infoColumn}>
             <div className={styles.row}>
               <div className={styles.gutter}>{siteSettings?.title || 'Ivan Sukhov'}</div>
@@ -265,7 +243,18 @@ export default function Version3Page({
           </div>
         </div>
 
-        <div className={styles.rightPane} onClick={handleRightPaneClick} ref={rightPaneRef}>
+        <div className={styles.rightPane} ref={rightPaneRef}>
+          <button
+            type="button"
+            className={styles.paneToggle}
+            data-expanded={paneExpanded || undefined}
+            aria-label={paneExpanded ? 'Collapse gallery pane' : 'Expand gallery pane'}
+            aria-pressed={paneExpanded}
+            onClick={() => setPaneExpanded((current) => !current)}
+          >
+            <img src="/Vector.svg" alt="" className={styles.paneToggleIcon} />
+          </button>
+
           {showServicesDetails ? (
             <ServicesPanel
               services={services}

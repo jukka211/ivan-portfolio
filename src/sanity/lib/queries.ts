@@ -80,6 +80,7 @@ export const projectSlidesBySlugQuery = groq`
     _key,
     slideType,
     background,
+    title,
     leftColumn1[]{
       _key,
       role,
@@ -91,9 +92,36 @@ export const projectSlidesBySlugQuery = groq`
       name
     },
     text,
+    specs[]{
+      _key,
+      label,
+      value
+    },
     mediaType,
     fitMode,
     image,
+    leftColumn{
+      mediaType,
+      image,
+      video{
+        asset->{
+          url,
+          originalFilename,
+          mimeType
+        }
+      }
+    },
+    rightColumn{
+      mediaType,
+      image,
+      video{
+        asset->{
+          url,
+          originalFilename,
+          mimeType
+        }
+      }
+    },
     video{
       asset->{
         url,
@@ -213,6 +241,7 @@ export const projectBySlugQuery = groq`
     _key,
     slideType,
     background,
+    title,
     leftColumn1[]{
       _key,
       role,
@@ -224,9 +253,36 @@ export const projectBySlugQuery = groq`
       name
     },
     text,
+    specs[]{
+      _key,
+      label,
+      value
+    },
     mediaType,
     fitMode,
     image,
+    leftColumn{
+      mediaType,
+      image,
+      video{
+        asset->{
+          url,
+          originalFilename,
+          mimeType
+        }
+      }
+    },
+    rightColumn{
+      mediaType,
+      image,
+      video{
+        asset->{
+          url,
+          originalFilename,
+          mimeType
+        }
+      }
+    },
     video{
       asset->{
         url,

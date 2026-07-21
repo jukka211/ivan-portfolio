@@ -597,6 +597,13 @@ function isCreditsSlide(slide: ProjectSlide): slide is CreditsSlide {
   return (slide as CreditsSlide).slideType === 'credits'
 }
 
+// This demo route only knows how to build media/credits slide elements — the
+// newer text/spec/two-image slide types (see version-2/types.ts) are simply
+// skipped here rather than reimplemented for this unrelated, non-live page.
+function isMediaSlide(slide: ProjectSlide): slide is MediaSlide {
+  return (slide as MediaSlide).slideType === undefined
+}
+
 function buildCreditsColumn(items?: CreditItem[] | null) {
   const column = document.createElement('div')
   column.className = styles.creditsColumn
@@ -683,9 +690,11 @@ function renderCellFourSlides(
     wrap.textContent = 'No additional slides'
   } else {
     slides.forEach((slide) => {
-      wrap.appendChild(
-        isCreditsSlide(slide) ? buildCreditsSlideEl(slide) : buildMediaSlideEl(slide, disposers),
-      )
+      if (isCreditsSlide(slide)) {
+        wrap.appendChild(buildCreditsSlideEl(slide))
+      } else if (isMediaSlide(slide)) {
+        wrap.appendChild(buildMediaSlideEl(slide, disposers))
+      }
     })
   }
 

@@ -3,12 +3,37 @@
 import {useEffect, useMemo, useRef, useState} from 'react'
 import {urlFor} from '@/sanity/lib/image'
 import LazyVideo from '@/app/LazyVideo'
-import type {CreditsSlide, MediaSlide, ProjectSlide} from '@/app/version-2/types'
+import type {
+  BigTextSlide,
+  ColumnMedia,
+  CreditsSlide,
+  MediaSlide,
+  ProjectSlide,
+  TechSpecsSlide,
+  TwoColumnImageSlide,
+  TwoColumnTextSlide,
+} from '@/app/version-2/types'
 import type {Project} from './types'
 import styles from './imageSlider.module.css'
 
 function isCreditsSlide(slide: ProjectSlide): slide is CreditsSlide {
   return (slide as CreditsSlide).slideType === 'credits'
+}
+
+function isBigTextSlide(slide: ProjectSlide): slide is BigTextSlide {
+  return (slide as BigTextSlide).slideType === 'bigText'
+}
+
+function isTwoColumnTextSlide(slide: ProjectSlide): slide is TwoColumnTextSlide {
+  return (slide as TwoColumnTextSlide).slideType === 'twoColumnText'
+}
+
+function isTechSpecsSlide(slide: ProjectSlide): slide is TechSpecsSlide {
+  return (slide as TechSpecsSlide).slideType === 'techSpecs'
+}
+
+function isTwoColumnImageSlide(slide: ProjectSlide): slide is TwoColumnImageSlide {
+  return (slide as TwoColumnImageSlide).slideType === 'twoColumnImage'
 }
 
 // The previous/current/next slide (relative to whichever slide is centered
@@ -118,13 +143,102 @@ function Slide({
   )
 }
 
+function BigText({slide, slideRef}: {slide: BigTextSlide; slideRef: (el: HTMLDivElement | null) => void}) {
+  return (
+    <div ref={slideRef} className={styles.slide}>
+      <div className={styles.bigText}>{slide.text}</div>
+    </div>
+  )
+}
+
+function TwoColumnText({
+  slide,
+  slideRef,
+}: {
+  slide: TwoColumnTextSlide
+  slideRef: (el: HTMLDivElement | null) => void
+}) {
+  return (
+    <div ref={slideRef} className={styles.slide}>
+      <div className={styles.twoColumnText}>
+        <div className={styles.columnTitle}>{slide.title}</div>
+        <div className={styles.columnBody}>{slide.text}</div>
+      </div>
+    </div>
+  )
+}
+
+function TechSpecs({slide, slideRef}: {slide: TechSpecsSlide; slideRef: (el: HTMLDivElement | null) => void}) {
+  return (
+    <div ref={slideRef} className={styles.slide}>
+      <div className={styles.techSpecs}>
+        <div className={styles.columnTitle}>{slide.title}</div>
+        <div className={styles.techSpecsRows}>
+          {slide.specs?.map((spec, index) => (
+            <div className={styles.techSpecsRow} key={spec._key ?? index}>
+              <span className={styles.techSpecsLabel}>{spec.label}</span>
+              <span>{spec.value}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  )
+}
+
+// One column's own media — image or video, same dispatch as <Slide>'s
+// single-media case. No aspect-ratio tracking needed here: the slide's box
+// height is a fixed 90vh (see .twoColumnImagesSlide), so unlike <Slide> its
+// size never depends on which media happens to be mounted.
+function ColumnMedia({media, fit}: {media?: ColumnMedia; fit: 'cover' | 'contain'}) {
+  if (media?.mediaType === 'video' && media.video?.asset?.url) {
+    return <LazyVideo src={media.video.asset.url} className={styles.twoColumnImage} fitMode={fit} active />
+  }
+
+  if (media?.mediaType === 'image' && media.image) {
+    return (
+      <img
+        className={styles.twoColumnImage}
+        style={{objectFit: fit}}
+        src={urlFor(media.image).width(1200).quality(80).url()}
+        alt=""
+      />
+    )
+  }
+
+  return null
+}
+
+function TwoColumnImages({
+  slide,
+  shouldRender,
+  slideRef,
+}: {
+  slide: TwoColumnImageSlide
+  shouldRender: boolean
+  slideRef: (el: HTMLDivElement | null) => void
+}) {
+  const fit = slide.fitMode === 'contain' ? 'contain' : 'cover'
+
+  return (
+    <div ref={slideRef} className={`${styles.slide} ${styles.twoColumnImagesSlide}`}>
+      {shouldRender && (
+        <div className={styles.twoColumnImages}>
+          <ColumnMedia media={slide.leftColumn} fit={fit} />
+          <ColumnMedia media={slide.rightColumn} fit={fit} />
+        </div>
+      )}
+    </div>
+  )
+}
+
 // Computes one contiguous render range per scroll/resize: the closest slide
 // to the container's center (±RENDER_WINDOW) union'd with whatever slides'
 // boxes actually overlap the viewport plus a half-viewport buffer on each
 // side. Slide heights vary (each sized by its own media's aspect ratio), so
 // this is measured directly off the DOM rather than computed from a fixed
 // row height.
-function SlideList({mediaSlides, loading}: {mediaSlides: MediaSlide[]; loading: boolean}) {
+function SlideList({slides, loading}: {slides: ProjectSlide[]; loading: boolean}) {
   const containerRef = useRef<HTMLDivElement | null>(null)
   const slideEls = useRef<(HTMLDivElement | null)[]>([])
   const [renderRange, setRenderRange] = useState<[number, number]>([0, RENDER_WINDOW])
@@ -201,28 +315,42 @@ function SlideList({mediaSlides, loading}: {mediaSlides: MediaSlide[]; loading: 
       resizeObserver.disconnect()
       clearTimeout(idleTimer)
     }
-  }, [mediaSlides.length])
+  }, [slides.length])
 
-  if (mediaSlides.length === 0) {
+  if (slides.length === 0) {
     return (
       <div className={styles.scrollSlider}>
-        <div className={styles.placeholder}>{loading ? 'Loading…' : 'No additional images'}</div>
+        <div className={styles.placeholder}>{loading ? 'Loading…' : 'No additional slides'}</div>
       </div>
     )
   }
 
   return (
     <div className={styles.scrollSlider} ref={containerRef}>
-      {mediaSlides.map((slide, index) => (
-        <Slide
-          key={slide._key ?? index}
-          slide={slide}
-          shouldRender={index >= renderRange[0] && index <= renderRange[1]}
-          slideRef={(el) => {
-            slideEls.current[index] = el
-          }}
-        />
-      ))}
+      {slides.map((slide, index) => {
+        const shouldRender = index >= renderRange[0] && index <= renderRange[1]
+        const slideRef = (el: HTMLDivElement | null) => {
+          slideEls.current[index] = el
+        }
+        const key = slide._key ?? index
+
+        if (isBigTextSlide(slide)) {
+          return <BigText key={key} slide={slide} slideRef={slideRef} />
+        }
+        if (isTwoColumnTextSlide(slide)) {
+          return <TwoColumnText key={key} slide={slide} slideRef={slideRef} />
+        }
+        if (isTechSpecsSlide(slide)) {
+          return <TechSpecs key={key} slide={slide} slideRef={slideRef} />
+        }
+        if (isTwoColumnImageSlide(slide)) {
+          return <TwoColumnImages key={key} slide={slide} shouldRender={shouldRender} slideRef={slideRef} />
+        }
+
+        return (
+          <Slide key={key} slide={slide as MediaSlide} shouldRender={shouldRender} slideRef={slideRef} />
+        )
+      })}
     </div>
   )
 }
@@ -311,8 +439,8 @@ export default function ImageSlider({
 
   // ----- a project row is open: scrollable list of that project's slides -----
   if (activeProject) {
-    const mediaSlides = (slides ?? []).filter((slide) => !isCreditsSlide(slide))
-    return <SlideList mediaSlides={mediaSlides} loading={slides === null} />
+    const renderableSlides = (slides ?? []).filter((slide) => !isCreditsSlide(slide))
+    return <SlideList slides={renderableSlides} loading={slides === null} />
   }
 
   // ----- hovering a row (nothing open): show that project's cover, centered, static -----
