@@ -1,6 +1,7 @@
 'use client'
 
 import {useRef, useState} from 'react'
+import Link from 'next/link'
 import ProjectRow from './ProjectRow'
 import ImageSlider from './ImageSlider'
 import ServicesPanel from './ServicesPanel'
@@ -139,7 +140,13 @@ export default function Version3Page({
         <div className={styles.leftPane} ref={leftPaneRef}>
           <div className={styles.infoColumn}>
             <div className={styles.row}>
-              <div className={styles.gutter}>{siteSettings?.title || 'Ivan Sukhov'}</div>
+              <button
+                type="button"
+                className={`${styles.gutter} ${styles.titleButton}`}
+                onClick={() => window.location.reload()}
+              >
+                {siteSettings?.title || 'Ivan Sukhov'}
+              </button>
               <div className={styles.intro}>
                 {siteSettings?.intro ||
                   'Brand and Web Designer working across brand strategy, concept development, visual identity, web design, and web development. Based in Linz, Austria. Available for enquiries, collaborations, and selected projects.'}
@@ -167,10 +174,10 @@ export default function Version3Page({
             </div>
 
             <div className={styles.legalList}>
-              <a href="#" className={styles.dataRow}>
+              <Link href="/legal" className={styles.dataRow}>
                 <span className={`${styles.gutter} ${styles.legalGutter}`} />
                 <span>© {new Date().getFullYear()}, Legal</span>
-              </a>
+              </Link>
             </div>
           </div>
 

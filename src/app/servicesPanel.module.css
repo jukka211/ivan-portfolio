@@ -123,6 +123,7 @@
   font-size: var(--text-size);
   appearance: none;
   cursor: pointer;
+  padding: 4px 0px 4px 0px;
 }
 .send:hover {
   background: var(--muted);
@@ -133,6 +134,12 @@
   font-size: var(--text-size);
   line-height: 1.4;
   color: var(--fg);
+}
+
+@media (max-width: 1100px) {
+  .detailOpen {
+    border: none;
+  }
 }
 
 @media (max-width: 640px) {

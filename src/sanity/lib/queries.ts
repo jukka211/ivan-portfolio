@@ -293,3 +293,11 @@ export const projectBySlugQuery = groq`
   }
 }
 `
+
+export const legalPageQuery = groq`
+*[_type == "legalPage"][0]{
+  title,
+  columnOne,
+  columnTwo
+}
+`

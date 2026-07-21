@@ -2,6 +2,7 @@ import {unstable_cache} from 'next/cache'
 import {client} from '@/sanity/lib/client'
 import {
   homePageQuery,
+  legalPageQuery,
   projectBySlugQuery,
   projectCardsQuery,
   projectSlidesBySlugQuery,
@@ -57,4 +58,10 @@ export function getVersion3Projects<QueryResponse>(): Promise<QueryResponse> {
   const fetcher = () => client.fetch<QueryResponse>(version3ProjectsQuery)
   if (isDev) return fetcher()
   return unstable_cache(fetcher, ['sanity', 'version3-projects'], {tags: ['projects']})()
+}
+
+export function getLegalPage<QueryResponse>(): Promise<QueryResponse> {
+  const fetcher = () => client.fetch<QueryResponse>(legalPageQuery)
+  if (isDev) return fetcher()
+  return unstable_cache(fetcher, ['sanity', 'legal-page'], {tags: ['legalPage']})()
 }

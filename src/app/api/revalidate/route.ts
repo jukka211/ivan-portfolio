@@ -7,7 +7,7 @@ type SanityWebhookBody = {
   _type?: string
 }
 
-const tagsToRevalidate = ['siteSettings', 'projects', 'workSections'] as const
+const tagsToRevalidate = ['siteSettings', 'projects', 'workSections', 'legalPage'] as const
 
 export async function POST(request: NextRequest) {
   const secret = process.env.SANITY_REVALIDATE_SECRET
@@ -32,6 +32,7 @@ export async function POST(request: NextRequest) {
   revalidatePath('/')
   revalidatePath('/projects/[slug]', 'page')
   revalidatePath('/work')
+  revalidatePath('/legal')
 
   return Response.json({
     revalidated: true,

@@ -173,9 +173,15 @@
 
   /* stacked instead of side-by-side — split the same fixed 90vh box into
      two even rows rather than letting each collapse to its content size. */
-  .twoColumnImages {
-    grid-template-columns: 1fr;
-    grid-template-rows: 1fr 1fr;
-    gap: var(--gap-md);
+
+  .scrollSlider {
+    gap: 24px;
+    padding:8px;
   }
+
+  .twoColumnImagesSlide {
+    height: auto;
+
+  }
+
 }

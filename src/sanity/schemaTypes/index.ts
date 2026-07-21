@@ -5,12 +5,14 @@ import {specItem} from './objects/specItem'
 import {techSpecsSlide} from './objects/techSpecsSlide'
 import {twoColumnImageSlide} from './objects/twoColumnImageSlide'
 import {twoColumnTextSlide} from './objects/twoColumnTextSlide'
+import {legalPageType} from './legalPageType'
 import {projectType} from './projectType'
 import {siteSettingsType} from './siteSettingsType'
 import {workSectionType} from './workSectionType'
 
 export const schemaTypes = [
   siteSettingsType,
+  legalPageType,
   creditItem,
   creditsSlide,
   specItem,
