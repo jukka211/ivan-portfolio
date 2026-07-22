@@ -137,14 +137,14 @@
 }
 
 /* leftPane defaults to 50% of the page, so a 2:3 grow ratio splits it into
-   infoColumn ~20% / listColumn ~30% of the full page width. */
+   infoColumn ~20% / listColumn ~30% of the full page width. flex: 2 2 0;  flex: 3 3 0; */
 .infoColumn {
-  flex: 2 2 0;
+  flex: 1 1 0;
   border-right: 1px solid var(--border);
 }
 
 .listColumn {
-  flex: 3 3 0;
+  flex: 1 1 0;
   overflow-y: auto;
 }
 
