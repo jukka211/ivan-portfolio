@@ -9,7 +9,10 @@
   --bg: #fff;
   --text: #000;
 }
-
+::selection {
+  color:black;
+  background-color: transparent;
+}
 @theme inline {
   --color-background: var(--bg);
   --color-foreground: var(--text);
