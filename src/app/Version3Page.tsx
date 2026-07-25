@@ -270,7 +270,12 @@ export default function Version3Page({
               onActiveIndexChange={setActiveServiceIndex}
             />
           ) : (
-            <ImageSlider projects={projects} activeProject={openProject} hoveredProject={hoveredProject} />
+            <ImageSlider
+              projects={projects}
+              activeProject={openProject}
+              hoveredProject={hoveredProject}
+              onOpenProject={toggleProject}
+            />
           )}
         </div>
       </main>

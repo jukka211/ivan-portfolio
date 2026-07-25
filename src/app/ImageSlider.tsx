@@ -383,34 +383,29 @@ export default function ImageSlider({
   projects,
   activeProject,
   hoveredProject,
+  onOpenProject,
 }: {
   projects: Project[]
   activeProject: Project | null
   hoveredProject: Project | null
+  onOpenProject: (slug?: string) => void
 }) {
   const [slides, setSlides] = useState<ProjectSlide[] | null>(null)
   const cache = useRef(new Map<string, ProjectSlide[]>())
-  const [cycleIndex, setCycleIndex] = useState(0)
+  const [hoverIndex, setHoverIndex] = useState(0)
   const stageRef = useRef<HTMLDivElement | null>(null)
 
   const coverProjects = useMemo(() => projects.filter((project) => project.coverMedia), [projects])
-  const idle = !activeProject && !hoveredProject
 
-  // React attaches `onWheel` as a passive listener, so it can't call
-  // preventDefault — attach a native, non-passive listener instead so
-  // scrolling over the idle stage cycles the cover rather than doing nothing.
-  useEffect(() => {
-    const el = stageRef.current
-    if (!el || !idle) return
-
-    const handleWheel = (event: WheelEvent) => {
-      event.preventDefault()
-      setCycleIndex((i) => i + (event.deltaY > 0 ? 1 : -1))
-    }
-
-    el.addEventListener('wheel', handleWheel, {passive: false})
-    return () => el.removeEventListener('wheel', handleWheel)
-  }, [idle])
+  // Idle stage: cursor X position (as a ratio of the stage width) selects
+  // which cover is shown, splitting the stage into one segment per project —
+  // left edge is the first cover, right edge the last.
+  const handleStageMouseMove = (event: React.MouseEvent<HTMLDivElement>) => {
+    if (coverProjects.length <= 1) return
+    const rect = event.currentTarget.getBoundingClientRect()
+    const ratio = Math.min(Math.max((event.clientX - rect.left) / rect.width, 0), 1)
+    setHoverIndex(Math.min(Math.floor(ratio * coverProjects.length), coverProjects.length - 1))
+  }
 
   useEffect(() => {
     const slug = activeProject?.slug
@@ -446,20 +441,24 @@ export default function ImageSlider({
   // ----- hovering a row (nothing open): show that project's cover, centered, static -----
   if (hoveredProject) {
     return (
-      <div className={styles.centerStage}>
+      <div className={styles.centerStage} onClick={() => onOpenProject(hoveredProject.slug)}>
         <CoverMedia project={hoveredProject} />
       </div>
     )
   }
 
-  // ----- idle: one cover at a time, centered; scroll or click advances it -----
+  // ----- idle: cursor X position picks the cover; click opens that project -----
   if (coverProjects.length === 0) return <div className={styles.centerStage} />
 
-  const index = ((cycleIndex % coverProjects.length) + coverProjects.length) % coverProjects.length
-  const current = coverProjects[index]
+  const current = coverProjects[Math.min(hoverIndex, coverProjects.length - 1)]
 
   return (
-    <div ref={stageRef} className={styles.centerStage} onClick={() => setCycleIndex((i) => i + 1)}>
+    <div
+      ref={stageRef}
+      className={styles.centerStage}
+      onMouseMove={handleStageMouseMove}
+      onClick={() => onOpenProject(current.slug)}
+    >
       <CoverMedia project={current} />
     </div>
   )
