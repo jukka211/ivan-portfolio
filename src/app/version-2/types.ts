@@ -93,6 +93,12 @@ export type TwoColumnImageSlide = {
   rightColumn?: ColumnMedia
 }
 
+export type VimeoSlide = {
+  _key?: string
+  slideType: 'vimeo'
+  embedCode?: string
+}
+
 export type ProjectSlide =
   | MediaSlide
   | CreditsSlide
@@ -100,3 +106,4 @@ export type ProjectSlide =
   | TwoColumnTextSlide
   | TechSpecsSlide
   | TwoColumnImageSlide
+  | VimeoSlide

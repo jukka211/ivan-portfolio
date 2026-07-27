@@ -12,6 +12,7 @@ import type {
   TechSpecsSlide,
   TwoColumnImageSlide,
   TwoColumnTextSlide,
+  VimeoSlide,
 } from '@/app/version-2/types'
 import type {Project} from './types'
 import styles from './imageSlider.module.css'
@@ -34,6 +35,27 @@ function isTechSpecsSlide(slide: ProjectSlide): slide is TechSpecsSlide {
 
 function isTwoColumnImageSlide(slide: ProjectSlide): slide is TwoColumnImageSlide {
   return (slide as TwoColumnImageSlide).slideType === 'twoColumnImage'
+}
+
+function isVimeoSlide(slide: ProjectSlide): slide is VimeoSlide {
+  return (slide as VimeoSlide).slideType === 'vimeo'
+}
+
+// Editors paste Vimeo's whole Share > Embed snippet (the wrapper <div>,
+// <iframe>, and player.js <script>) into one Sanity text field rather than
+// picking a video URL/ID apart by hand. Only the iframe's own src and title
+// are actually needed to render it here, so this just pulls those two
+// attributes back out; the wrapper div and script tag are Vimeo's own
+// responsive-sizing trick, which this component does itself via CSS instead.
+function parseVimeoEmbed(embedCode?: string): {src: string; title?: string} | null {
+  if (!embedCode) return null
+  const srcMatch = embedCode.match(/<iframe[^>]*\ssrc=["']([^"']+)["']/i)
+  if (!srcMatch) return null
+  const titleMatch = embedCode.match(/<iframe[^>]*\stitle=["']([^"']+)["']/i)
+  return {
+    src: srcMatch[1].replace(/&amp;/g, '&'),
+    title: titleMatch?.[1],
+  }
 }
 
 // The previous/current/next slide (relative to whichever slide is centered
@@ -232,6 +254,42 @@ function TwoColumnImages({
   )
 }
 
+// Vimeo's iframe is a live embed, not a self-hosted <video> — there's no
+// source file to lazily attach the way LazyVideo does for the mediaType:
+// 'video' case. It's still gated on `shouldRender` (mount/unmount) so a
+// project with several Vimeo slides doesn't spin up every player at once,
+// but that's the same virtualization every other media slide already gets,
+// nothing Vimeo-specific. The box uses a hardcoded 16:9 aspect-ratio (see
+// .vimeoSlide) instead of the load-triggered aspect-ratio lock other slides
+// use, since Vimeo embeds are always 16:9 and there's no <video>/<img> load
+// event here to hang that measurement off of.
+function Vimeo({
+  slide,
+  shouldRender,
+  slideRef,
+}: {
+  slide: VimeoSlide
+  shouldRender: boolean
+  slideRef: (el: HTMLDivElement | null) => void
+}) {
+  const embed = parseVimeoEmbed(slide.embedCode)
+  if (!embed) return null
+
+  return (
+    <div ref={slideRef} className={`${styles.slide} ${styles.vimeoSlide}`}>
+      {shouldRender && (
+        <iframe
+          src={embed.src}
+          className={styles.vimeoIframe}
+          allow="autoplay; fullscreen; picture-in-picture; clipboard-write; encrypted-media; web-share"
+          referrerPolicy="strict-origin-when-cross-origin"
+          title={embed.title || 'Vimeo video'}
+        />
+      )}
+    </div>
+  )
+}
+
 // Computes one contiguous render range per scroll/resize: the closest slide
 // to the container's center (±RENDER_WINDOW) union'd with whatever slides'
 // boxes actually overlap the viewport plus a half-viewport buffer on each
@@ -345,6 +403,9 @@ function SlideList({slides, loading}: {slides: ProjectSlide[]; loading: boolean}
         }
         if (isTwoColumnImageSlide(slide)) {
           return <TwoColumnImages key={key} slide={slide} shouldRender={shouldRender} slideRef={slideRef} />
+        }
+        if (isVimeoSlide(slide)) {
+          return <Vimeo key={key} slide={slide} shouldRender={shouldRender} slideRef={slideRef} />
         }
 
         return (

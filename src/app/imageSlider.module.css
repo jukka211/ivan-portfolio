@@ -177,6 +177,23 @@
   min-height: 0;
 }
 
+/* vimeo slide: hardcoded 16:9 box (Vimeo embeds are reliably this ratio, so
+   no need for the load-triggered aspect-ratio lock the other media slides
+   use), iframe absolutely filling it — the same responsive trick Vimeo's own
+   embed snippet uses via inline padding, just done in CSS here instead. */
+.vimeoSlide {
+  position: relative;
+  aspect-ratio: 16 / 9;
+}
+
+.vimeoIframe {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  border: 0;
+}
+
 @media (max-width: 1100px) {
   .twoColumnText,
   .techSpecs {

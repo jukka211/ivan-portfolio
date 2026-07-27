@@ -5,6 +5,7 @@ import {specItem} from './objects/specItem'
 import {techSpecsSlide} from './objects/techSpecsSlide'
 import {twoColumnImageSlide} from './objects/twoColumnImageSlide'
 import {twoColumnTextSlide} from './objects/twoColumnTextSlide'
+import {vimeoSlide} from './objects/vimeoSlide'
 import {legalPageType} from './legalPageType'
 import {projectType} from './projectType'
 import {siteSettingsType} from './siteSettingsType'
@@ -20,6 +21,7 @@ export const schemaTypes = [
   twoColumnTextSlide,
   techSpecsSlide,
   twoColumnImageSlide,
+  vimeoSlide,
   projectType,
   workSectionType,
 ]

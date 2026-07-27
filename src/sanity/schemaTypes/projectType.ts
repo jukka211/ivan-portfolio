@@ -170,6 +170,9 @@ export const projectType = defineType({
         defineArrayMember({
           type: 'twoColumnImageSlide',
         }),
+        defineArrayMember({
+          type: 'vimeoSlide',
+        }),
       ],
     }),
   ],
