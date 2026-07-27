@@ -47,6 +47,10 @@ export default function Version3Page({
   // only the toggle icon in the right pane's corner resizes them; opening a
   // project row no longer does this on its own.
   const [paneExpanded, setPaneExpanded] = useState(false)
+  // infoColumn narrows to a rail (see version3.module.css's [data-collapsed])
+  // when listColumn is clicked, giving the project/award/service list more
+  // room — clicking back into infoColumn restores it.
+  const [infoCollapsed, setInfoCollapsed] = useState(false)
 
   // Mobile carousel: `.leftPane` (Info/Lists, combined) and `.rightPane`
   // (Gallery) become one-screen-at-a-time snap panels (see
@@ -138,7 +142,11 @@ export default function Version3Page({
         onScroll={handlePageScroll}
       >
         <div className={styles.leftPane} ref={leftPaneRef}>
-          <div className={styles.infoColumn}>
+          <div
+            className={styles.infoColumn}
+            data-collapsed={infoCollapsed || undefined}
+            onClick={() => setInfoCollapsed(false)}
+          >
             <div className={styles.row}>
               <button
                 type="button"
@@ -155,7 +163,7 @@ export default function Version3Page({
 
             <div className={styles.contactList}>
               <a href={`mailto:${email}`} className={styles.dataRow}>
-                <span className={styles.gutter}>Contact</span>
+                <span className={`${styles.gutter} ${styles.contactLabel}`}>Contact</span>
                 <span>E-Mail</span>
               </a>
               <a
@@ -181,7 +189,7 @@ export default function Version3Page({
             </div>
           </div>
 
-          <div className={styles.listColumn}>
+          <div className={styles.listColumn} onClick={() => setInfoCollapsed(true)}>
             <section className={styles.projects}>
               {projects.map((project, index) => (
                 <ProjectRow

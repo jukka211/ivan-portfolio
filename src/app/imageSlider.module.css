@@ -44,6 +44,14 @@
   background: #000;
 }
 
+/* big-text slides have no media to size against, so the shared 90vh cap
+   above only clipped long copy instead of doing anything useful — this
+   slide's height should just be its text's own natural (flex-basis: auto)
+   height instead. */
+.bigTextSlide {
+  max-height: none;
+}
+
 .media {
   display: block;
   width: 100%;
@@ -70,7 +78,11 @@
   border-top: 1px solid var(--border);
   color: var(--fg);
   font-family: var(--font-family);
-  font-size: clamp(20px, 4vw, 56px);
+  /* fluid between 24px @768px viewport and 56px @1920px (the old flat 4vw
+     term grew so fast it was already within ~5px of the 56px cap by a
+     13" MacBook's ~1280-1440px width, so it read as "maxed out" on every
+     laptop-and-up screen instead of actually scaling). */
+  font-size: clamp(20px, calc(2.67px + 2.78vw), 56px);
   line-height: 0.95;
   letter-spacing: -0.02em;
   white-space: pre-line;

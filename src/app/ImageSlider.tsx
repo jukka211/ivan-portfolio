@@ -145,7 +145,7 @@ function Slide({
 
 function BigText({slide, slideRef}: {slide: BigTextSlide; slideRef: (el: HTMLDivElement | null) => void}) {
   return (
-    <div ref={slideRef} className={styles.slide}>
+    <div ref={slideRef} className={`${styles.slide} ${styles.bigTextSlide}`}>
       <div className={styles.bigText}>{slide.text}</div>
     </div>
   )

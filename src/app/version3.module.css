@@ -12,7 +12,7 @@
   --muted: #818181;
   --border: rgba(255, 255, 255, 0.3);
   --font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
-  --text-size: 13px;
+  --text-size: 0.8125rem;
   --line-height: 1.1;
   --gutter: 116px;
   --pad: 4px;
@@ -152,6 +152,38 @@
   overflow-y: auto;
 }
 
+/* Narrowed to a rail by a listColumn click (see Version3Page.tsx); clicking
+   back into it restores .infoColumn's normal flex-basis. listColumn itself
+   needs no extra rule — its flex-grow already absorbs whatever infoColumn
+   gives up, landing it at ~90%. Only the title button and the "Contact"
+   label (.contactLabel) stay visible; everything else in the column is
+   hidden outright rather than just visually de-emphasized.
+   Desktop-only (matches the max-width:1100px query below, inverted): on
+   mobile, infoColumn is its own full-width stacked panel rather than a
+   side-by-side column, so "narrowing" it has no width to reclaim from —
+   it'd just hide useful content for nothing. */
+@media (min-width: 1101px) {
+  .infoColumn[data-collapsed] {
+    flex: 0 0 10%;
+    cursor: pointer;
+  }
+
+  .infoColumn[data-collapsed] .intro,
+  .infoColumn[data-collapsed] .contactList > .dataRow:not(:first-child),
+  .infoColumn[data-collapsed] .contactList > .dataRow:first-child > span:not(.contactLabel),
+  .infoColumn[data-collapsed] .legalList {
+    display: none;
+  }
+
+  /* .gutter's fixed --gutter (116px) basis is wider than the 10% rail, so
+     without this the title/"Contact" text would overflow past the column
+     instead of wrapping to fit it. */
+  .infoColumn[data-collapsed] .gutter {
+    flex: 1 1 auto;
+    width: 100%;
+  }
+}
+
 .row {
   display: flex;
   flex-direction: row;
@@ -286,7 +318,7 @@
    Version3Page.tsx that jump between them. */
 @media (max-width: 1100px) {
   .root {
-    --text-size: 12.5px;
+    --text-size: 0.78125rem;
   }
 
   /* pane resizing doesn't apply once .leftPane/.rightPane become

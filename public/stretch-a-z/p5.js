@@ -94936,7 +94936,7 @@
                     frameIterator = nFramesDelay;
                     this.frameCount = frameIterator;
                     lastPixelDensity = this._pixelDensity;
-                    this.pixelDensity(1);
+                    this.pixelDensity(2);
                     // We first take every frame that we are going to use for the animation
                     frames = [
                     ];

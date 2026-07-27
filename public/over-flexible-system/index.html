@@ -65,6 +65,7 @@
                 <select id="textModeSelect" class="select-input">
                   <option value="lists" selected>Words</option>
                   <option value="symbol">Letters</option>
+                  <option value="auto">Auto</option>
                 </select>
               </div>
           
@@ -196,9 +197,9 @@
                   <span class="control-label">Columns</span>
                   <span class="range-value" id="colValue">3</span>
                 </div>
-                <input type="range" id="colSlider" min="1" max="75" value="3">
+                <input type="range" id="colSlider" min="1" max="75" step="2" value="3">
               </div>
-          
+
               <div class="control-group">
                 <div class="range-header">
                   <span class="control-label">Rows</span>
@@ -260,15 +261,47 @@
               </div>
           
               <div class="control-group">
+                <label class="checkbox-label">
+                  <input type="checkbox" id="linkMaxRowsToColsCheckbox">
+                  <span>Link Max Rows to Columns</span>
+                </label>
+              </div>
+
+              <div class="control-group">
                 <div class="range-header">
                   <span class="control-label">Max Rows</span>
                   <span class="range-value" id="autoRowMaxValue">3</span>
                 </div>
                 <input type="range" id="autoRowMaxSlider" min="1" max="20" value="3">
               </div>
-       
+
+              <div class="section-title">Auto Column Count</div>
+
+              <div class="control-group">
+                <label class="checkbox-label">
+                  <input type="checkbox" id="autoColCountCheckbox">
+                  <span>Enable Auto Column Count</span>
+                </label>
+              </div>
+
+              <div class="control-group">
+                <div class="range-header">
+                  <span class="control-label">Min Columns</span>
+                  <span class="range-value" id="autoColMinValue">3</span>
+                </div>
+                <input type="range" id="autoColMinSlider" min="1" max="75" value="3">
+              </div>
+
+              <div class="control-group">
+                <div class="range-header">
+                  <span class="control-label">Max Columns</span>
+                  <span class="range-value" id="autoColMaxValue">3</span>
+                </div>
+                <input type="range" id="autoColMaxSlider" min="1" max="75" value="3">
+              </div>
+
             </section>
-          
+
             <!-- 4) Color Mode (Fixed Mode Colors, Canvas) -->
             <section class="panel-group">
               <div class="group-title">Color Mode</div>
@@ -420,10 +453,10 @@
               </div>
             </section>
           
-            <!-- 6) Export Frames (export buttons) -->
+            <!-- 6) Export (export buttons) -->
             <section class="panel-group">
-              <div class="group-title">Export Frames</div>
-          
+              <div class="group-title">Export</div>
+
               <div class="control-group">
                 <div class="range-header">
                   <span class="control-label">Frame Rate (FPS)</span>
@@ -431,7 +464,7 @@
                 </div>
                 <input type="range" id="exportFpsSlider" min="1" max="60" value="30">
               </div>
-          
+
               <div class="control-group">
                 <div class="range-header">
                   <span class="control-label">Duration (seconds)</span>
@@ -441,6 +474,7 @@
               </div>
               <div class="control-group" style="margin-top: 40px;">
               <button class="save-btn" id="exportFramesBtn">Export Frames</button>
+              <button class="save-btn" id="recordVideoBtn">Record Video</button>
               <button class="save-btn" id="saveBtn">Save as PNG</button>
             </div>
             </section>

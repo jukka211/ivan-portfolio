@@ -19,12 +19,24 @@ let autoRowPattern = "radial";  // "radial" | "radialInverse" | "animatedRadial"
 let autoRowMin = 3;
 let autoRowMax = 3;
 
+// When true, Max Rows tracks the Columns slider one-way (Columns -> Max Rows).
+let linkMaxRowsToCols = false;
+
+// Auto column count settings (breathes the global column count over time —
+// unlike rows, columns have no per-row index to key a spatial pattern off,
+// so this only supports the animated/breathing behavior).
+let useAutoColCount = false;
+let autoColMin = 3;
+let autoColMax = 3;
+
 // --- Export frames controls ---
 let exportFps = 30;
 let exportDurationSec = 5;
 
 let isExportingFrames = false;
 let exportTimeOverride = null; // when exporting, we render at an exact t
+
+let isRecordingVideo = false;
 
 let p5canvas; // store the p5 canvas object created in setup()
 
@@ -165,9 +177,9 @@ function timeSeconds() {
 }
 
 // ------------------------------------
-// TEXT INPUT MODE (2 options)
+// TEXT INPUT MODE (3 options)
 // ------------------------------------
-let textMode = "lists"; // "lists" or "symbol"
+let textMode = "lists"; // "lists" | "symbol" | "auto"
 let symbolChar1 = "A";
 let symbolChar2 = "B";
 let symbolChar3 = "C";
@@ -198,10 +210,15 @@ function applyTextModeUI() {
   if (textMode === "symbol") {
     listsEl.style.display = "none";
     symEl.style.display = "block";
+  } else if (textMode === "auto") {
+    listsEl.style.display = "none";
+    symEl.style.display = "none";
   } else {
     listsEl.style.display = "block";
     symEl.style.display = "none";
   }
+
+  refreshOpenAccordionHeightFrom(listsEl);
 }
 
 // ------------------------------------
@@ -234,6 +251,49 @@ let selectedLine3Word = "Systems";
 let WORDS = ["OVER", "FLEXIBLE", "SYSTEMS"];
 let WORD_DATA = {};
 const BASE_SIZE = 200;
+
+// ------------------------------------
+// Auto text mode (random prefix/word pair, swapped on stretch extremes)
+// ------------------------------------
+const AUTO_PREFIXES = ["over", "under", "post", "hyper", "meta"];
+const AUTO_LINE3_WORDS = ["Systems", "Democracy", "Culture", "Data", "Design", "Truth", "Love"];
+
+let autoPrefixWord = AUTO_PREFIXES[0];
+let autoLine3Word = AUTO_LINE3_WORDS[0];
+
+function pickRandomDifferent(list, current) {
+  if (list.length <= 1) return list[0];
+  let next = current;
+  while (next === current) {
+    next = list[floor(random(list.length))];
+  }
+  return next;
+}
+
+function triggerAutoTextSwap() {
+  autoPrefixWord = pickRandomDifferent(AUTO_PREFIXES, autoPrefixWord);
+  autoLine3Word = pickRandomDifferent(AUTO_LINE3_WORDS, autoLine3Word);
+}
+
+// Tracks each animated stretch oscillator frame-to-frame so we can detect the
+// exact moment it turns around at a local min/max ("lowest or highest
+// value") — that's the trigger for auto mode to swap in a new pair.
+const stretchExtremumTracker = {
+  col: { prev: null, increasing: null },
+  row: { prev: null, increasing: null },
+};
+
+function checkStretchExtremum(axis, oscValue) {
+  const state = stretchExtremumTracker[axis];
+  if (state.prev !== null) {
+    const increasing = oscValue > state.prev;
+    if (state.increasing !== null && increasing !== state.increasing && textMode === "auto") {
+      triggerAutoTextSwap();
+    }
+    state.increasing = increasing;
+  }
+  state.prev = oscValue;
+}
 
 // ------------------------------------
 // Stretch controls
@@ -433,6 +493,13 @@ function getWordsForCell(colIndex, rowIndex) {
   if (textMode === "symbol") {
     return [symbolChar1, symbolChar2, symbolChar3];
   }
+  if (textMode === "auto") {
+    return [
+      autoPrefixWord.toUpperCase(),
+      LINE2_WORD.toUpperCase(),
+      autoLine3Word.toUpperCase()
+    ];
+  }
   return [
     selectedPrefix.toUpperCase(),
     LINE2_WORD.toUpperCase(),
@@ -468,6 +535,10 @@ function setup() {
 // ------------------------------------
 async function exportFramesAsZip() {
   if (isExportingFrames) return;
+  if (isRecordingVideo) {
+    alert("A video recording is in progress. Wait for it to finish first.");
+    return;
+  }
   if (!window.JSZip) {
     alert("JSZip not found. Make sure you added the JSZip <script> tag.");
     return;
@@ -541,6 +612,156 @@ async function exportFramesAsZip() {
   }
 }
 
+// ------------------------------------
+// Record Video (separate from Export Frames: this captures the live,
+// real-time canvas via MediaRecorder instead of stepping through frames
+// with an exportTimeOverride, so the sketch's normal draw loop just keeps
+// running for the recording's duration.)
+// ------------------------------------
+function pickSupportedVideoMimeType() {
+  if (!window.MediaRecorder) return null;
+  const candidates = ["video/webm;codecs=vp9", "video/webm;codecs=vp8", "video/webm"];
+  return candidates.find((type) => MediaRecorder.isTypeSupported(type)) || null;
+}
+
+// MediaRecorder defaults to a conservative bitrate (~2.5Mbps in Chrome) when
+// none is given — fine at small resolutions, but visibly blocky once the
+// buffer is forced up to a full 1080p+ export size. Scale bits-per-pixel
+// instead so quality holds regardless of target resolution. This content
+// (hard-edged flat-color shapes reflowing every frame) is harder to compress
+// than typical natural video at the same nominal bitrate — a "standard"
+// rate like YouTube's ~0.1 bit/px/frame recommendation left fast-moving
+// stretch/reflow frames visibly blocky, so this sits well above that.
+function estimateVideoBitrate(w, h, fps) {
+  const BITS_PER_PIXEL_PER_FRAME = 0.4;
+  const bitrate = Math.round(w * h * fps * BITS_PER_PIXEL_PER_FRAME);
+  return Math.min(Math.max(bitrate, 6_000_000), 120_000_000);
+}
+
+// Maps the selected canvas-size preset to its exact export resolution. The
+// on-screen canvas is normally fit to the viewport and doubled again by
+// pixelDensity(2) for retina sharpness, so its live pixel buffer only
+// coincidentally lands near these standard sizes — recording has to force
+// it. "auto" has no fixed target size, so it's left as-is (null).
+function getExportResolution() {
+  switch (canvasSizeMode) {
+    case "16:9": return { w: 1920, h: 1080 };
+    case "9:16": return { w: 1080, h: 1920 };
+    case "4:5": return { w: 1080, h: 1350 };
+    case "1:1": return { w: 1080, h: 1080 };
+    case "custom": return { w: Math.max(1, customCanvasWidth), h: Math.max(1, customCanvasHeight) };
+    default: return null;
+  }
+}
+
+async function recordAndExportVideo() {
+  if (isRecordingVideo) return;
+  if (isExportingFrames) {
+    alert("A frame export is in progress. Wait for it to finish first.");
+    return;
+  }
+  if (!p5canvas || !p5canvas.elt.captureStream) {
+    alert("Video recording isn't supported in this browser.");
+    return;
+  }
+
+  const mimeType = pickSupportedVideoMimeType();
+  if (!mimeType) {
+    alert("No supported video format found for recording in this browser.");
+    return;
+  }
+
+  const fps = Math.max(1, Math.round(exportFps));
+  const durationSec = Math.max(1, Math.round(exportDurationSec));
+
+  isRecordingVideo = true;
+
+  const btn = document.getElementById("recordVideoBtn");
+  const oldText = btn ? btn.textContent : "";
+  if (btn) {
+    btn.disabled = true;
+    btn.textContent = "Recording…";
+  }
+
+  // Force the recording buffer to the exact export resolution. Density must
+  // be 1 here: resizeCanvas(w, h) sets the buffer to w*density x h*density,
+  // so leaving density at 2 would silently double the target (e.g. 16:9
+  // would record at 3840x2160 instead of 1920x1080). Density doesn't affect
+  // sharpness once the buffer size is fixed — the recorded pixel count is
+  // identical either way — so this has no bearing on recording quality.
+  // Only the canvas's internal pixel buffer changes here; its on-screen CSS
+  // size is restored immediately after, so nothing visibly jumps in the
+  // layout while this runs. The resize's own redraw is skipped (3rd arg)
+  // since it's just a one-off hitch — the sketch's normal loop repaints the
+  // new size within a frame or two anyway, before captureStream even starts.
+  const target = getExportResolution();
+  let restoreCanvas = null;
+
+  if (target) {
+    const prevDensity = pixelDensity();
+    const prevCssW = p5canvas.elt.style.width;
+    const prevCssH = p5canvas.elt.style.height;
+
+    pixelDensity(1);
+    resizeCanvas(target.w, target.h, true);
+    p5canvas.elt.style.width = prevCssW;
+    p5canvas.elt.style.height = prevCssH;
+
+    restoreCanvas = () => {
+      pixelDensity(prevDensity);
+      applyCanvasSize();
+    };
+  }
+
+  try {
+    const stream = p5canvas.elt.captureStream(fps);
+    const videoBitsPerSecond = estimateVideoBitrate(p5canvas.elt.width, p5canvas.elt.height, fps);
+    const recorder = new MediaRecorder(stream, { mimeType, videoBitsPerSecond });
+    const chunks = [];
+
+    recorder.ondataavailable = (e) => {
+      if (e.data && e.data.size > 0) chunks.push(e.data);
+    };
+
+    const stopped = new Promise((resolve, reject) => {
+      recorder.onstop = resolve;
+      recorder.onerror = (e) => reject(e.error || new Error("Recording failed"));
+    });
+
+    // A 1s timeslice spreads muxing work across the recording instead of
+    // bursting it all at stop() — one less thing competing for the main
+    // thread right when the sketch's own draw loop is already busy.
+    recorder.start(1000);
+    await new Promise((resolve) => setTimeout(resolve, durationSec * 1000));
+    recorder.stop();
+    await stopped;
+
+    const blob = new Blob(chunks, { type: mimeType });
+    const url = URL.createObjectURL(blob);
+
+    const sizeTag = target ? `${target.w}x${target.h}_` : "";
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `modulo_video_${sizeTag}${fps}fps_${durationSec}s.webm`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+
+    URL.revokeObjectURL(url);
+  } catch (err) {
+    console.error(err);
+    alert("Video recording failed. See console for details.");
+  } finally {
+    if (restoreCanvas) restoreCanvas();
+
+    isRecordingVideo = false;
+    if (btn) {
+      btn.disabled = false;
+      btn.textContent = oldText || "Record Video";
+    }
+  }
+}
+
 function windowResized() {
   if (canvasSizeMode === "custom") return;
   applyCanvasSize();
@@ -549,14 +770,14 @@ function windowResized() {
 // ------------------------------------
 // Row count helpers
 // ------------------------------------
-function getRowCountForColumn(colIndex) {
-  if (useAutoRowCount) return calculateAutoRowCount(colIndex);
+function getRowCountForColumn(colIndex, cols) {
+  if (useAutoRowCount) return calculateAutoRowCount(colIndex, cols);
   if (useAlternatingRows) return (colIndex % 2 === 0) ? numRowsCol1 : numRowsCol2;
   return numRows;
 }
 
-function calculateAutoRowCount(colIndex) {
-  let cols = max(1, numCols);
+function calculateAutoRowCount(colIndex, cols) {
+  cols = max(1, cols);
   let u = (colIndex + 0.5) / cols;
 
   let t = (autoRowPattern === "animatedRadial") ? timeSeconds() : 0;
@@ -586,6 +807,33 @@ function calculateAutoRowCount(colIndex) {
   return max(1, rowCount);
 }
 
+// One-way link: pulls Max Rows to match the current Columns value and keeps
+// the Max Rows slider (its range + displayed value) in sync while linked.
+function syncMaxRowsToColumns() {
+  autoRowMax = numCols;
+
+  const slider = document.getElementById('autoRowMaxSlider');
+  if (slider) {
+    if (numCols > parseInt(slider.max, 10)) slider.max = String(numCols);
+    slider.value = String(autoRowMax);
+    slider.disabled = linkMaxRowsToCols;
+  }
+
+  const v = document.getElementById('autoRowMaxValue');
+  if (v) v.textContent = autoRowMax;
+}
+
+// Breathes the total column count between Min/Max over time. Same breathing
+// formula as the "Animated Radial" row pattern, but applied globally: unlike
+// rows (nested per-column, so they can key off horizontal position), columns
+// are the canvas-wide structure with no per-row index to vary spatially by.
+function calculateAutoColumnCount() {
+  let t = timeSeconds();
+  let breath = 0.5 + 0.5 * sin(TWO_PI * t * 0.15);
+  let colCount = round(lerp(autoColMin, autoColMax, breath));
+  return max(1, colCount);
+}
+
 // ------------------------------------
 // Main draw
 // ------------------------------------
@@ -594,13 +842,14 @@ function draw() {
   let t = timeSeconds();
 
   // 1) Column widths (animated / manual)
-  let cols = max(1, numCols);
+  let cols = max(1, useAutoColCount ? calculateAutoColumnCount() : numCols);
   let colWeights = new Array(cols);
   let sumColW = 0;
 
   let colOsc;
   if (colStretchMode === "animated") {
     colOsc = sin(TWO_PI * t * COL_MAP_SPEED);
+    checkStretchExtremum("col", colOsc);
   } else if (colStretchMode === "manual") {
     colOsc = colStretchManual;
   } else {
@@ -627,9 +876,15 @@ function draw() {
   let maxDist = dist(0, 0, width / 2, height / 2);
   let xAccum = cellGap;
 
+  let rowOsc = null;
+  if (rowStretchMode === "animated") {
+    rowOsc = sin(TWO_PI * t * ROW_ANIM_SPEED);
+    checkStretchExtremum("row", rowOsc);
+  }
+
   for (let c = 0; c < cols; c++) {
     let colW = colWidths[c];
-    let rows = max(1, getRowCountForColumn(c));
+    let rows = max(1, getRowCountForColumn(c, cols));
 
     let totalGapHeight = (rows + 1) * cellGap;
     let availableHeight = height - totalGapHeight;
@@ -641,8 +896,7 @@ function draw() {
 
     let stretchAmt;
     if (rowStretchMode === "animated") {
-      let oscRow = sin(TWO_PI * t * ROW_ANIM_SPEED);
-      stretchAmt = ROW_STRETCH_AMOUNT * oscRow;
+      stretchAmt = ROW_STRETCH_AMOUNT * rowOsc;
     } else if (rowStretchMode === "manual") {
       stretchAmt = rowStretchManual;
     } else {
@@ -1014,6 +1268,7 @@ if (colSliderEl) {
     numCols = parseInt(e.target.value, 10);
     const v = document.getElementById('colValue');
     if (v) v.textContent = numCols;
+    if (linkMaxRowsToCols) syncMaxRowsToColumns();
   });
 }
 
@@ -1092,6 +1347,44 @@ if (autoRowMaxSlider) {
     autoRowMax = parseInt(e.target.value, 10);
     const v = document.getElementById('autoRowMaxValue');
     if (v) v.textContent = autoRowMax;
+  });
+}
+
+const linkMaxRowsToColsCheckbox = document.getElementById('linkMaxRowsToColsCheckbox');
+if (linkMaxRowsToColsCheckbox) {
+  linkMaxRowsToColsCheckbox.addEventListener('change', (e) => {
+    linkMaxRowsToCols = e.target.checked;
+    if (linkMaxRowsToCols) {
+      syncMaxRowsToColumns();
+    } else if (autoRowMaxSlider) {
+      autoRowMaxSlider.disabled = false;
+    }
+  });
+}
+
+// Auto column count controls
+const autoColCountCheckbox = document.getElementById('autoColCountCheckbox');
+if (autoColCountCheckbox) {
+  autoColCountCheckbox.addEventListener('change', (e) => {
+    useAutoColCount = e.target.checked;
+  });
+}
+
+const autoColMinSlider = document.getElementById('autoColMinSlider');
+if (autoColMinSlider) {
+  autoColMinSlider.addEventListener('input', (e) => {
+    autoColMin = parseInt(e.target.value, 10);
+    const v = document.getElementById('autoColMinValue');
+    if (v) v.textContent = autoColMin;
+  });
+}
+
+const autoColMaxSlider = document.getElementById('autoColMaxSlider');
+if (autoColMaxSlider) {
+  autoColMaxSlider.addEventListener('input', (e) => {
+    autoColMax = parseInt(e.target.value, 10);
+    const v = document.getElementById('autoColMaxValue');
+    if (v) v.textContent = autoColMax;
   });
 }
 
@@ -1237,6 +1530,14 @@ const exportFramesBtn = document.getElementById("exportFramesBtn");
 if (exportFramesBtn) {
   exportFramesBtn.addEventListener("click", () => {
     exportFramesAsZip();
+  });
+}
+
+// Record video button
+const recordVideoBtn = document.getElementById("recordVideoBtn");
+if (recordVideoBtn) {
+  recordVideoBtn.addEventListener("click", () => {
+    recordAndExportVideo();
   });
 }
 

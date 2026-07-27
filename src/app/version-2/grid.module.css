@@ -49,7 +49,7 @@
   color: var(--label);
   display: grid;
   place-items: center;
-  font-size: 13px;
+  font-size: 0.8125rem;
   cursor: grab;
   user-select: none;
   min-width: 0;
@@ -75,7 +75,7 @@
   justify-content: space-between;
   align-items: stretch;
   padding: var(--gap);
-  font-size: 13px;
+  font-size: 0.8125rem;
   text-align: left;
   gap: 16px;
   overflow: auto;
@@ -97,7 +97,7 @@
 }
 
 .infoName {
-  font-size: 13px;
+  font-size: 0.8125rem;
   color: #fff;
   flex: 0 0 auto;
   min-width: 90px;
@@ -125,7 +125,7 @@
 .infoLink {
   color: #fff;
   text-decoration: none;
-  font-size: 13px;
+  font-size: 0.8125rem;
   width: fit-content;
 }
 .infoLink:hover {
@@ -147,7 +147,7 @@
 .infoLabel {
   flex: 0 0 auto;
   color: #fff;
-  font-size: 13px;
+  font-size: 0.8125rem;
   min-width: 90px;
 }
 
@@ -191,7 +191,7 @@
   justify-content: center;
   text-align: center;
   padding: 12px;
-  font-size: 13px;
+  font-size: 0.8125rem;
   font-weight: 400;
   color: var(--label);
   overflow: hidden;
@@ -262,7 +262,7 @@
   gap: 16px;
   padding: 10px 14px;
   color: #fff;
-  font-size: 13px;
+  font-size: 0.8125rem;
   transition: background-color 0.2s ease;
 }
 
@@ -297,7 +297,7 @@
   justify-content: center;
   text-align: center;
   color: var(--label);
-  font-size: 13px;
+  font-size: 0.8125rem;
   padding: 0 16px;
 }
 
@@ -331,7 +331,7 @@
   gap: 16px;
   background: #0a0a0a;
   color: var(--label);
-  font-size: 13px;
+  font-size: 0.8125rem;
 }
 
 .creditsSlide.slideWhite {
@@ -407,7 +407,7 @@
   background: #fff;
   color: #000;
   font: inherit;
-  font-size: 13px;
+  font-size: 0.8125rem;
   letter-spacing: 0.04em;
   text-transform: uppercase;
   padding: 8px 14px;
