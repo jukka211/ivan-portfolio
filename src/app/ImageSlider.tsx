@@ -454,6 +454,9 @@ export default function ImageSlider({
   const [slides, setSlides] = useState<ProjectSlide[] | null>(null)
   const cache = useRef(new Map<string, ProjectSlide[]>())
   const [hoverIndex, setHoverIndex] = useState(0)
+  // Space bar toggles this on/off; moving the mouse hands control straight
+  // back to cursor-position scrubbing (see handleStageMouseMove below).
+  const [isAutoPlaying, setIsAutoPlaying] = useState(false)
   const stageRef = useRef<HTMLDivElement | null>(null)
 
   const coverProjects = useMemo(() => projects.filter((project) => project.coverMedia), [projects])
@@ -463,10 +466,50 @@ export default function ImageSlider({
   // left edge is the first cover, right edge the last.
   const handleStageMouseMove = (event: React.MouseEvent<HTMLDivElement>) => {
     if (coverProjects.length <= 1) return
+    setIsAutoPlaying(false)
     const rect = event.currentTarget.getBoundingClientRect()
     const ratio = Math.min(Math.max((event.clientX - rect.left) / rect.width, 0), 1)
     setHoverIndex(Math.min(Math.floor(ratio * coverProjects.length), coverProjects.length - 1))
   }
+
+  // The slideshow only makes sense on the idle stage (below) — leaving it,
+  // whether by opening a project or just hovering a row, stops it rather
+  // than leaving it running silently in the background.
+  useEffect(() => {
+    if (activeProject || hoveredProject) setIsAutoPlaying(false)
+  }, [activeProject, hoveredProject])
+
+  // Space toggles the idle stage between cursor-scrubbed and auto-advancing
+  // through covers, like a slideshow. Ignored while typing anywhere else on
+  // the page (e.g. the send-request form) so it doesn't hijack a literal space.
+  useEffect(() => {
+    if (activeProject || hoveredProject || coverProjects.length <= 1) return
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.code !== 'Space') return
+      const target = event.target as HTMLElement | null
+      if (target && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable)) {
+        return
+      }
+      event.preventDefault()
+      setIsAutoPlaying((current) => !current)
+    }
+
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [activeProject, hoveredProject, coverProjects.length])
+
+  // Auto-advance through covers, wrapping back to the first once it reaches
+  // the last, for as long as isAutoPlaying stays on.
+  useEffect(() => {
+    if (!isAutoPlaying || coverProjects.length <= 1) return
+
+    const AUTO_PLAY_INTERVAL_MS = 200
+    const id = setInterval(() => {
+      setHoverIndex((current) => (current + 1) % coverProjects.length)
+    }, AUTO_PLAY_INTERVAL_MS)
+    return () => clearInterval(id)
+  }, [isAutoPlaying, coverProjects.length])
 
   useEffect(() => {
     const slug = activeProject?.slug
