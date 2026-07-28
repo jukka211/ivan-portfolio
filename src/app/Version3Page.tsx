@@ -36,12 +36,9 @@ export default function Version3Page({
   // image slider — mutually exclusive with an open project (each closes
   // the other so the right pane never has to arbitrate between them).
   const [showServicesDetails, setShowServicesDetails] = useState(false)
-  // Which of the Services Details statements is drilled into (null = the
-  // top-level list). Owned here, not inside ServicesPanel, so a left-column
-  // service row click can always snap it back to the list.
-  const [activeServiceIndex, setActiveServiceIndex] = useState<number | null>(null)
-  // Which service's own breakdown the top-level list should show — each
-  // service row opens its own set of statements, not a shared generic list.
+  // Which service's own request form the right pane should show — each
+  // service row opens the same form with its own Sanity-editable headline,
+  // rather than a shared generic one.
   const [activeServiceLabel, setActiveServiceLabel] = useState<string | null>(null)
   // Pane width (columns vs. image slider) is a separate, explicit choice —
   // only the toggle icon in the right pane's corner resizes them; opening a
@@ -98,7 +95,6 @@ export default function Version3Page({
 
   const openServicesDetails = (label: string) => {
     setShowServicesDetails(true)
-    setActiveServiceIndex(null)
     setActiveServiceLabel(label)
     setOpenSlug(null)
   }
@@ -106,7 +102,6 @@ export default function Version3Page({
   const openSendRequestForm = () => {
     setShowServicesDetails(true)
     setActiveServiceLabel(null)
-    setActiveServiceIndex(0)
     setOpenSlug(null)
     if (window.matchMedia('(max-width: 1100px)').matches) {
       scrollToPanel(rightPaneRef)
@@ -271,12 +266,7 @@ export default function Version3Page({
           </button>
 
           {showServicesDetails ? (
-            <ServicesPanel
-              services={services}
-              activeServiceLabel={activeServiceLabel}
-              activeIndex={activeServiceIndex}
-              onActiveIndexChange={setActiveServiceIndex}
-            />
+            <ServicesPanel services={services} activeServiceLabel={activeServiceLabel} />
           ) : (
             <ImageSlider
               projects={projects}

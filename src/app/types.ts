@@ -15,6 +15,7 @@ export type GraphicTool = {
 export type ServiceItem = {
   label?: string
   url?: string
+  headline?: string
   details?: string[]
 }
 

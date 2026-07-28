@@ -16,6 +16,7 @@ export const homePageQuery = groq`
     services[]{
       label,
       url,
+      headline,
       details
     }
   },

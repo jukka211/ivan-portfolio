@@ -115,6 +115,14 @@ export const siteSettingsType = defineType({
               type: 'url',
             }),
             defineField({
+              name: 'headline',
+              title: 'Panel Headline',
+              description:
+                'Shown above the request form when this service is opened. Leave blank to use the generic default.',
+              type: 'text',
+              rows: 3,
+            }),
+            defineField({
               name: 'details',
               title: 'List of Services',
               description: 'The breakdown shown when this service is opened in the Services panel.',

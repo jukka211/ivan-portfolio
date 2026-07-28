@@ -72,7 +72,7 @@
 }
 
 /* big text slide: full block width, same statement-sized type as the
-   Services rows (servicesPanel.module.css's .row) */
+   Services panel headline (servicesPanel.module.css's .headline) */
 .bigText {
   width: 100%;
   border-top: 1px solid var(--border);
