@@ -41,6 +41,31 @@ function isVimeoSlide(slide: ProjectSlide): slide is VimeoSlide {
   return (slide as VimeoSlide).slideType === 'vimeo'
 }
 
+// Whether this slide has a <video> (LazyVideo) somewhere in it that the
+// active-video-index logic below (see SlideList) needs to consider — a
+// single-media Slide, or either column of a TwoColumnImages slide. Vimeo
+// slides don't count: their iframe isn't gated by an `active` prop the way
+// LazyVideo is (see the Vimeo component's own comment).
+function slideHasVideo(slide: ProjectSlide): boolean {
+  if (isTwoColumnImageSlide(slide)) {
+    return (
+      (slide.leftColumn?.mediaType === 'video' && !!slide.leftColumn.video?.asset?.url) ||
+      (slide.rightColumn?.mediaType === 'video' && !!slide.rightColumn.video?.asset?.url)
+    )
+  }
+  if (
+    isCreditsSlide(slide) ||
+    isBigTextSlide(slide) ||
+    isTwoColumnTextSlide(slide) ||
+    isTechSpecsSlide(slide) ||
+    isVimeoSlide(slide)
+  ) {
+    return false
+  }
+  const media = slide as MediaSlide
+  return media.mediaType === 'video' && !!media.video?.asset?.url
+}
+
 // Editors paste Vimeo's whole Share > Embed snippet (the wrapper <div>,
 // <iframe>, and player.js <script>) into one Sanity text field rather than
 // picking a video URL/ID apart by hand. Only the iframe's own src and title
@@ -99,6 +124,11 @@ function Slide({
   // decoding, and locking in that premature size would freeze the slide at
   // the wrong ratio for good. The load event is the real "final size known"
   // signal.
+  //
+  // A video only fires that load event while it's isVideoActive (see
+  // below), which for most video slides is most of the time — so the 16:9
+  // placeholder below isn't just a brief flash for them the way it is for
+  // images, it's the steady-state box whenever this isn't the active one.
   const [aspectRatio, setAspectRatio] = useState<number | null>(null)
 
   const setRefs = (el: HTMLDivElement | null) => {
@@ -122,38 +152,46 @@ function Slide({
       ref={setRefs}
       className={styles.slide}
       data-locked={aspectRatio !== null || undefined}
-      style={aspectRatio !== null ? {aspectRatio} : shouldRender ? undefined : {aspectRatio: 16 / 9}}
+      // Always a real size, never `undefined` — an inactive video (see
+      // isVideoActive below) never fires onLoadedMetadata, so without this
+      // fallback its box would collapse to the intrinsic size of an empty
+      // <video> (a jump for every slide around it) for as long as it stays
+      // inactive, not just briefly while shouldRender is catching up.
+      style={aspectRatio !== null ? {aspectRatio} : {aspectRatio: 16 / 9}}
     >
       {shouldRender &&
         (slide.mediaType === 'video' && slide.video?.asset?.url ? (
-          <LazyVideo
-            src={slide.video.asset.url}
-            className={styles.media}
-            fitMode={slide.fitMode === 'cover' ? 'cover' : 'contain'}
-            // This <LazyVideo> only exists in the DOM while shouldRender is
-            // already true — that's the lazy-loading. Without an explicit
-            // `active`, LazyVideo runs its own independent
-            // IntersectionObserver on top of that to decide when to attach
-            // `src`, which can string together its own activate/deactivate
-            // cycle out of step with this component's mount, leaving
-            // onLoadedMetadata reporting an empty/reset video's metadata.
-            //
-            // isVideoActive (not just shouldRender) gates actual playback:
-            // shouldRender's window is deliberately generous (see SlideList)
-            // to avoid a layout pop, so several slides can be mounted at
-            // once — but letting all of them decode/play a <video>
-            // simultaneously is what was crashing mobile Safari/Chrome
-            // (too many concurrent video decoders). Only the single
-            // slide nearest the viewport center is ever active.
-            active={isVideoActive}
-            onLoadedMetadata={
-              aspectRatio === null
-                ? ({videoWidth, videoHeight}) => {
-                    if (videoWidth > 0 && videoHeight > 0) setAspectRatio(videoWidth / videoHeight)
-                  }
-                : undefined
-            }
-          />
+          <>
+            <LazyVideo
+              src={slide.video.asset.url}
+              className={styles.media}
+              fitMode={slide.fitMode === 'cover' ? 'cover' : 'contain'}
+              // This <LazyVideo> only exists in the DOM while shouldRender is
+              // already true — that's the lazy-loading. Without an explicit
+              // `active`, LazyVideo runs its own independent
+              // IntersectionObserver on top of that to decide when to attach
+              // `src`, which can string together its own activate/deactivate
+              // cycle out of step with this component's mount, leaving
+              // onLoadedMetadata reporting an empty/reset video's metadata.
+              //
+              // isVideoActive (not just shouldRender) gates actual playback:
+              // shouldRender's window is deliberately generous (see SlideList)
+              // to avoid a layout pop, so several slides can be mounted at
+              // once — but letting all of them decode/play a <video>
+              // simultaneously is what was crashing mobile Safari/Chrome
+              // (too many concurrent video decoders). Only the single
+              // slide nearest the viewport center is ever active.
+              active={isVideoActive}
+              onLoadedMetadata={
+                aspectRatio === null
+                  ? ({videoWidth, videoHeight}) => {
+                      if (videoWidth > 0 && videoHeight > 0) setAspectRatio(videoWidth / videoHeight)
+                    }
+                  : undefined
+              }
+            />
+            {!isVideoActive && <div className={styles.videoPlaceholder}>Video loads…</div>}
+          </>
         ) : slide.mediaType === 'image' && slide.image ? (
           <img
             ref={checkImageAspectRatio}
@@ -219,9 +257,9 @@ function TechSpecs({slide, slideRef}: {slide: TechSpecsSlide; slideRef: (el: HTM
 }
 
 // One column's own media — image or video, same dispatch as <Slide>'s
-// single-media case. No aspect-ratio tracking needed here: the slide's box
-// height is a fixed 90vh (see .twoColumnImagesSlide), so unlike <Slide> its
-// size never depends on which media happens to be mounted.
+// single-media case. Wrapped in its own cell (rather than sizing the
+// video/image directly as the grid item) so the "Video loads…" placeholder
+// below has something to position itself against.
 function ColumnMedia({
   media,
   fit,
@@ -233,18 +271,23 @@ function ColumnMedia({
 }) {
   if (media?.mediaType === 'video' && media.video?.asset?.url) {
     return (
-      <LazyVideo src={media.video.asset.url} className={styles.twoColumnImage} fitMode={fit} active={active} />
+      <div className={styles.twoColumnImageCell}>
+        <LazyVideo src={media.video.asset.url} className={styles.twoColumnImage} fitMode={fit} active={active} />
+        {!active && <div className={styles.videoPlaceholder}>Video loads…</div>}
+      </div>
     )
   }
 
   if (media?.mediaType === 'image' && media.image) {
     return (
-      <img
-        className={styles.twoColumnImage}
-        style={{objectFit: fit}}
-        src={urlFor(media.image).width(1200).quality(80).url()}
-        alt=""
-      />
+      <div className={styles.twoColumnImageCell}>
+        <img
+          className={styles.twoColumnImage}
+          style={{objectFit: fit}}
+          src={urlFor(media.image).width(1200).quality(80).url()}
+          alt=""
+        />
+      </div>
     )
   }
 
@@ -318,14 +361,35 @@ function Vimeo({
 // side. Slide heights vary (each sized by its own media's aspect ratio), so
 // this is measured directly off the DOM rather than computed from a fixed
 // row height.
-function SlideList({slides, loading}: {slides: ProjectSlide[]; loading: boolean}) {
+function SlideList({
+  slides,
+  loading,
+  isTouchDevice,
+}: {
+  slides: ProjectSlide[]
+  loading: boolean
+  isTouchDevice: boolean
+}) {
   const containerRef = useRef<HTMLDivElement | null>(null)
   const slideEls = useRef<(HTMLDivElement | null)[]>([])
   const [renderRange, setRenderRange] = useState<[number, number]>([0, RENDER_WINDOW])
-  // The one slide (nearest viewport center) allowed to actually play video —
-  // see the isVideoActive comment on <Slide> for why this has to be capped
-  // to one, and why it's only updated once scrolling has gone idle (below).
-  const [centeredIndex, setCenteredIndex] = useState(0)
+  // Mobile-only: the one video-bearing slide (nearest viewport center, among
+  // slides that actually have a video) allowed to actually play — see the
+  // isVideoActive comment on <Slide> for why *touch* devices cap this to
+  // one, and why it's only updated once scrolling has gone idle (below).
+  // Desktop doesn't have the concurrent-decoder crash this works around, so
+  // there every video slide within shouldRender's window just plays (see
+  // isVideoActive below), same as before that mobile-only fix existed.
+  //
+  // Deliberately tracked separately from "closest slide of any type" — on
+  // first open (scrollTop 0), the slide nearest true viewport center is
+  // often a short text/credits slide, not slide 0 itself, so gating on the
+  // single overall-closest slide meant no video ever activated at all if it
+  // wasn't literally the closest thing on the page. Restricting the search
+  // to video-bearing slides guarantees whichever video is most prominent on
+  // screen is the one that plays.
+  const [activeVideoIndex, setActiveVideoIndex] = useState(0)
+  const videoSlideFlags = useMemo(() => slides.map(slideHasVideo), [slides])
 
   useEffect(() => {
     const container = containerRef.current
@@ -347,7 +411,7 @@ function SlideList({slides, loading}: {slides: ProjectSlide[]; loading: boolean}
     const IDLE_BUFFER_RATIO = 0.5
     const IDLE_DELAY_MS = 300
 
-    const measure = (bufferRatio: number, updateCenteredIndex: boolean) => {
+    const measure = (bufferRatio: number, updateActiveVideoIndex: boolean) => {
       const containerRect = container.getBoundingClientRect()
       const containerCenter = containerRect.top + containerRect.height / 2
       const buffer = containerRect.height * bufferRatio
@@ -356,6 +420,8 @@ function SlideList({slides, loading}: {slides: ProjectSlide[]; loading: boolean}
 
       let closestIndex = 0
       let closestDistance = Infinity
+      let closestVideoIndex = 0
+      let closestVideoDistance = Infinity
       let minVisible = Infinity
       let maxVisible = -Infinity
 
@@ -367,6 +433,10 @@ function SlideList({slides, loading}: {slides: ProjectSlide[]; loading: boolean}
         if (distance < closestDistance) {
           closestDistance = distance
           closestIndex = index
+        }
+        if (videoSlideFlags[index] && distance < closestVideoDistance) {
+          closestVideoDistance = distance
+          closestVideoIndex = index
         }
         if (rect.bottom > visibleTop && rect.top < visibleBottom) {
           minVisible = Math.min(minVisible, index)
@@ -380,8 +450,8 @@ function SlideList({slides, loading}: {slides: ProjectSlide[]; loading: boolean}
       // Deferred to the idle pass only (see handleScroll) — video playback
       // shouldn't hop from slide to slide on every scroll tick while the
       // user is still actively swiping past them.
-      if (updateCenteredIndex) {
-        setCenteredIndex((current) => (current === closestIndex ? current : closestIndex))
+      if (updateActiveVideoIndex) {
+        setActiveVideoIndex((current) => (current === closestVideoIndex ? current : closestVideoIndex))
       }
     }
 
@@ -419,7 +489,10 @@ function SlideList({slides, loading}: {slides: ProjectSlide[]; loading: boolean}
     <div className={styles.scrollSlider} ref={containerRef}>
       {slides.map((slide, index) => {
         const shouldRender = index >= renderRange[0] && index <= renderRange[1]
-        const isVideoActive = index === centeredIndex
+        // Desktop: every video slide within the render window plays, same as
+        // every other media type — no concurrent-decoder crash risk there,
+        // so no need to cap it to one. Touch only: single centered video.
+        const isVideoActive = isTouchDevice ? index === activeVideoIndex : shouldRender
         const slideRef = (el: HTMLDivElement | null) => {
           slideEls.current[index] = el
         }
@@ -629,7 +702,7 @@ export default function ImageSlider({
   // ----- a project row is open: scrollable list of that project's slides -----
   if (activeProject) {
     const renderableSlides = (slides ?? []).filter((slide) => !isCreditsSlide(slide))
-    return <SlideList slides={renderableSlides} loading={slides === null} />
+    return <SlideList slides={renderableSlides} loading={slides === null} isTouchDevice={isTouchDevice} />
   }
 
   // ----- hovering a row (nothing open): show that project's cover, centered, static -----
