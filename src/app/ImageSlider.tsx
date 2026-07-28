@@ -76,10 +76,12 @@ const RENDER_WINDOW = 1
 function Slide({
   slide,
   shouldRender,
+  isVideoActive,
   slideRef,
 }: {
   slide: MediaSlide
   shouldRender: boolean
+  isVideoActive: boolean
   slideRef: (el: HTMLDivElement | null) => void
 }) {
   // A width/height *ratio*, not a raw pixel height — locked in once and
@@ -135,7 +137,15 @@ function Slide({
             // `src`, which can string together its own activate/deactivate
             // cycle out of step with this component's mount, leaving
             // onLoadedMetadata reporting an empty/reset video's metadata.
-            active
+            //
+            // isVideoActive (not just shouldRender) gates actual playback:
+            // shouldRender's window is deliberately generous (see SlideList)
+            // to avoid a layout pop, so several slides can be mounted at
+            // once — but letting all of them decode/play a <video>
+            // simultaneously is what was crashing mobile Safari/Chrome
+            // (too many concurrent video decoders). Only the single
+            // slide nearest the viewport center is ever active.
+            active={isVideoActive}
             onLoadedMetadata={
               aspectRatio === null
                 ? ({videoWidth, videoHeight}) => {
@@ -212,9 +222,19 @@ function TechSpecs({slide, slideRef}: {slide: TechSpecsSlide; slideRef: (el: HTM
 // single-media case. No aspect-ratio tracking needed here: the slide's box
 // height is a fixed 90vh (see .twoColumnImagesSlide), so unlike <Slide> its
 // size never depends on which media happens to be mounted.
-function ColumnMedia({media, fit}: {media?: ColumnMedia; fit: 'cover' | 'contain'}) {
+function ColumnMedia({
+  media,
+  fit,
+  active,
+}: {
+  media?: ColumnMedia
+  fit: 'cover' | 'contain'
+  active: boolean
+}) {
   if (media?.mediaType === 'video' && media.video?.asset?.url) {
-    return <LazyVideo src={media.video.asset.url} className={styles.twoColumnImage} fitMode={fit} active />
+    return (
+      <LazyVideo src={media.video.asset.url} className={styles.twoColumnImage} fitMode={fit} active={active} />
+    )
   }
 
   if (media?.mediaType === 'image' && media.image) {
@@ -234,10 +254,12 @@ function ColumnMedia({media, fit}: {media?: ColumnMedia; fit: 'cover' | 'contain
 function TwoColumnImages({
   slide,
   shouldRender,
+  isVideoActive,
   slideRef,
 }: {
   slide: TwoColumnImageSlide
   shouldRender: boolean
+  isVideoActive: boolean
   slideRef: (el: HTMLDivElement | null) => void
 }) {
   const fit = slide.fitMode === 'contain' ? 'contain' : 'cover'
@@ -246,8 +268,8 @@ function TwoColumnImages({
     <div ref={slideRef} className={`${styles.slide} ${styles.twoColumnImagesSlide}`}>
       {shouldRender && (
         <div className={styles.twoColumnImages}>
-          <ColumnMedia media={slide.leftColumn} fit={fit} />
-          <ColumnMedia media={slide.rightColumn} fit={fit} />
+          <ColumnMedia media={slide.leftColumn} fit={fit} active={isVideoActive} />
+          <ColumnMedia media={slide.rightColumn} fit={fit} active={isVideoActive} />
         </div>
       )}
     </div>
@@ -300,6 +322,10 @@ function SlideList({slides, loading}: {slides: ProjectSlide[]; loading: boolean}
   const containerRef = useRef<HTMLDivElement | null>(null)
   const slideEls = useRef<(HTMLDivElement | null)[]>([])
   const [renderRange, setRenderRange] = useState<[number, number]>([0, RENDER_WINDOW])
+  // The one slide (nearest viewport center) allowed to actually play video —
+  // see the isVideoActive comment on <Slide> for why this has to be capped
+  // to one, and why it's only updated once scrolling has gone idle (below).
+  const [centeredIndex, setCenteredIndex] = useState(0)
 
   useEffect(() => {
     const container = containerRef.current
@@ -321,7 +347,7 @@ function SlideList({slides, loading}: {slides: ProjectSlide[]; loading: boolean}
     const IDLE_BUFFER_RATIO = 0.5
     const IDLE_DELAY_MS = 300
 
-    const measure = (bufferRatio: number) => {
+    const measure = (bufferRatio: number, updateCenteredIndex: boolean) => {
       const containerRect = container.getBoundingClientRect()
       const containerCenter = containerRect.top + containerRect.height / 2
       const buffer = containerRect.height * bufferRatio
@@ -351,6 +377,12 @@ function SlideList({slides, loading}: {slides: ProjectSlide[]; loading: boolean}
       const from = Math.min(closestIndex - RENDER_WINDOW, minVisible === Infinity ? closestIndex : minVisible)
       const to = Math.max(closestIndex + RENDER_WINDOW, maxVisible === -Infinity ? closestIndex : maxVisible)
       setRenderRange((current) => (current[0] === from && current[1] === to ? current : [from, to]))
+      // Deferred to the idle pass only (see handleScroll) — video playback
+      // shouldn't hop from slide to slide on every scroll tick while the
+      // user is still actively swiping past them.
+      if (updateCenteredIndex) {
+        setCenteredIndex((current) => (current === closestIndex ? current : closestIndex))
+      }
     }
 
     // Not rAF-throttled: an extra async hop between a 'scroll' event and the
@@ -359,12 +391,12 @@ function SlideList({slides, loading}: {slides: ProjectSlide[]; loading: boolean}
     // run straight off every scroll event.
     let idleTimer: ReturnType<typeof setTimeout>
     const handleScroll = () => {
-      measure(SCROLL_BUFFER_RATIO)
+      measure(SCROLL_BUFFER_RATIO, false)
       clearTimeout(idleTimer)
-      idleTimer = setTimeout(() => measure(IDLE_BUFFER_RATIO), IDLE_DELAY_MS)
+      idleTimer = setTimeout(() => measure(IDLE_BUFFER_RATIO, true), IDLE_DELAY_MS)
     }
 
-    measure(IDLE_BUFFER_RATIO)
+    measure(IDLE_BUFFER_RATIO, true)
     container.addEventListener('scroll', handleScroll, {passive: true})
     const resizeObserver = new ResizeObserver(handleScroll)
     resizeObserver.observe(container)
@@ -387,6 +419,7 @@ function SlideList({slides, loading}: {slides: ProjectSlide[]; loading: boolean}
     <div className={styles.scrollSlider} ref={containerRef}>
       {slides.map((slide, index) => {
         const shouldRender = index >= renderRange[0] && index <= renderRange[1]
+        const isVideoActive = index === centeredIndex
         const slideRef = (el: HTMLDivElement | null) => {
           slideEls.current[index] = el
         }
@@ -402,14 +435,28 @@ function SlideList({slides, loading}: {slides: ProjectSlide[]; loading: boolean}
           return <TechSpecs key={key} slide={slide} slideRef={slideRef} />
         }
         if (isTwoColumnImageSlide(slide)) {
-          return <TwoColumnImages key={key} slide={slide} shouldRender={shouldRender} slideRef={slideRef} />
+          return (
+            <TwoColumnImages
+              key={key}
+              slide={slide}
+              shouldRender={shouldRender}
+              isVideoActive={isVideoActive}
+              slideRef={slideRef}
+            />
+          )
         }
         if (isVimeoSlide(slide)) {
           return <Vimeo key={key} slide={slide} shouldRender={shouldRender} slideRef={slideRef} />
         }
 
         return (
-          <Slide key={key} slide={slide as MediaSlide} shouldRender={shouldRender} slideRef={slideRef} />
+          <Slide
+            key={key}
+            slide={slide as MediaSlide}
+            shouldRender={shouldRender}
+            isVideoActive={isVideoActive}
+            slideRef={slideRef}
+          />
         )
       })}
     </div>
