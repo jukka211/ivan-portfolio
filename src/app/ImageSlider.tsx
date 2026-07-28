@@ -501,30 +501,73 @@ export default function ImageSlider({
   const [slides, setSlides] = useState<ProjectSlide[] | null>(null)
   const cache = useRef(new Map<string, ProjectSlide[]>())
   const [hoverIndex, setHoverIndex] = useState(0)
-  // Space bar toggles this on/off; moving the mouse hands control straight
-  // back to cursor-position scrubbing (see handleStageMouseMove below).
+  // Space bar toggles this on/off on desktop; on a touch device (no
+  // keyboard, no hover) it's the idle stage's default instead — see the
+  // isTouchDevice effect below. Moving the mouse, or touch-dragging, hands
+  // control straight back to cursor/finger-position scrubbing.
   const [isAutoPlaying, setIsAutoPlaying] = useState(false)
+  const [isTouchDevice, setIsTouchDevice] = useState(false)
   const stageRef = useRef<HTMLDivElement | null>(null)
+
+  useEffect(() => {
+    setIsTouchDevice(window.matchMedia('(pointer: coarse)').matches)
+  }, [])
 
   const coverProjects = useMemo(() => projects.filter((project) => project.coverMedia), [projects])
 
-  // Idle stage: cursor X position (as a ratio of the stage width) selects
-  // which cover is shown, splitting the stage into one segment per project —
-  // left edge is the first cover, right edge the last.
+  // Idle stage: cursor/touch X position (as a ratio of the stage width)
+  // selects which cover is shown, splitting the stage into one segment per
+  // project — left edge is the first cover, right edge the last. Shared by
+  // the mouse and touch handlers below.
+  const updateHoverIndexFromX = (clientX: number, stage: HTMLDivElement) => {
+    const rect = stage.getBoundingClientRect()
+    const ratio = Math.min(Math.max((clientX - rect.left) / rect.width, 0), 1)
+    setHoverIndex(Math.min(Math.floor(ratio * coverProjects.length), coverProjects.length - 1))
+  }
+
   const handleStageMouseMove = (event: React.MouseEvent<HTMLDivElement>) => {
     if (coverProjects.length <= 1) return
     setIsAutoPlaying(false)
-    const rect = event.currentTarget.getBoundingClientRect()
-    const ratio = Math.min(Math.max((event.clientX - rect.left) / rect.width, 0), 1)
-    setHoverIndex(Math.min(Math.floor(ratio * coverProjects.length), coverProjects.length - 1))
+    updateHoverIndexFromX(event.clientX, event.currentTarget)
+  }
+
+  // Holding a touch down and dragging along X scrubs exactly like the mouse
+  // does. .centerStage is `touch-action: none` (imageSlider.module.css) so
+  // the browser doesn't also try to read this as the mobile layout's own
+  // horizontal swipe-between-panels gesture (see version3.module.css's
+  // `.page` scroll-snap carousel) — this claims the drag for scrubbing
+  // instead. A plain tap (no real movement) still fires the click below to
+  // open the project, same as it always has.
+  const handleStageTouchStart = (event: React.TouchEvent<HTMLDivElement>) => {
+    if (coverProjects.length <= 1) return
+    setIsAutoPlaying(false)
+    updateHoverIndexFromX(event.touches[0].clientX, event.currentTarget)
+  }
+
+  const handleStageTouchMove = (event: React.TouchEvent<HTMLDivElement>) => {
+    if (coverProjects.length <= 1) return
+    updateHoverIndexFromX(event.touches[0].clientX, event.currentTarget)
+  }
+
+  // Releasing the drag hands control back to the ambient slideshow — touch
+  // has no equivalent of pressing Space again, so autoplay is what the idle
+  // stage defaults back to once the user lets go.
+  const handleStageTouchEnd = () => {
+    if (isTouchDevice) setIsAutoPlaying(true)
   }
 
   // The slideshow only makes sense on the idle stage (below) — leaving it,
   // whether by opening a project or just hovering a row, stops it rather
-  // than leaving it running silently in the background.
+  // than leaving it running silently in the background. On a touch device,
+  // returning to the idle stage restarts it automatically, since there's no
+  // Space key to turn it back on.
   useEffect(() => {
-    if (activeProject || hoveredProject) setIsAutoPlaying(false)
-  }, [activeProject, hoveredProject])
+    if (activeProject || hoveredProject) {
+      setIsAutoPlaying(false)
+      return
+    }
+    if (isTouchDevice && coverProjects.length > 1) setIsAutoPlaying(true)
+  }, [activeProject, hoveredProject, isTouchDevice, coverProjects.length])
 
   // Space toggles the idle stage between cursor-scrubbed and auto-advancing
   // through covers, like a slideshow. Ignored while typing anywhere else on
@@ -608,6 +651,10 @@ export default function ImageSlider({
       ref={stageRef}
       className={styles.centerStage}
       onMouseMove={handleStageMouseMove}
+      onTouchStart={handleStageTouchStart}
+      onTouchMove={handleStageTouchMove}
+      onTouchEnd={handleStageTouchEnd}
+      onTouchCancel={handleStageTouchEnd}
       onClick={() => onOpenProject(current.slug)}
     >
       <CoverMedia project={current} />

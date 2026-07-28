@@ -10,6 +10,11 @@
   overflow: hidden;
   padding: clamp(16px, 3vw, 32px);
   cursor: pointer;
+  /* A touch-drag here is claimed for scrubbing covers (see ImageSlider.tsx's
+     touch handlers) rather than read by the browser as the mobile layout's
+     own horizontal swipe-between-panels gesture (.page's scroll-snap
+     carousel in version3.module.css). */
+  touch-action: none;
 }
 
 .centerMedia {
