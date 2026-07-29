@@ -465,15 +465,18 @@
                 <input type="range" id="exportFpsSlider" min="1" max="60" value="30">
               </div>
 
+              <div class="control-group" style="margin-top: 40px;">
+              <button class="save-btn" id="exportFramesBtn">Start Export Frames</button>
+              </div>
+
               <div class="control-group">
                 <div class="range-header">
-                  <span class="control-label">Duration (seconds)</span>
-                  <span class="range-value" id="exportDurValue">5</span>
+                  <span class="control-label">Record Duration (seconds)</span>
+                  <span class="range-value" id="recordDurValue">5</span>
                 </div>
-                <input type="range" id="exportDurSlider" min="1" max="60" value="5">
+                <input type="range" id="recordDurSlider" min="1" max="60" value="5">
               </div>
-              <div class="control-group" style="margin-top: 40px;">
-              <button class="save-btn" id="exportFramesBtn">Export Frames</button>
+              <div class="control-group">
               <button class="save-btn" id="recordVideoBtn">Record Video</button>
               <button class="save-btn" id="saveBtn">Save as PNG</button>
             </div>

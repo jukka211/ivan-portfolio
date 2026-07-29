@@ -31,7 +31,9 @@ let autoColMax = 3;
 
 // --- Export frames controls ---
 let exportFps = 30;
-let exportDurationSec = 5;
+
+// --- Record Video controls (fixed-length, unlike Start/Stop frame export) ---
+let recordDurationSec = 5;
 
 let isExportingFrames = false;
 let exportTimeOverride = null; // when exporting, we render at an exact t
@@ -533,7 +535,28 @@ function setup() {
 // ------------------------------------
 // Export Frames
 // ------------------------------------
-async function exportFramesAsZip() {
+// Start/Stop rather than a fixed duration: length is decided live, by
+// clicking Stop whenever the user wants. Frames are still stepped
+// deterministically via exportTimeOverride (not real wall-clock time), same
+// as before — that's what keeps this jam-free at any resolution, since each
+// frame gets as long as it needs to render rather than racing a frame clock.
+let stopFrameExportRequested = false;
+let frameExportZip = null;
+let frameExportFolder = null;
+let frameExportFolderName = "";
+let frameExportFrameCount = 0;
+
+// Safety net only, not a target length — guards against runaway memory if
+// Stop is never clicked (frames accumulate in memory until the zip is built).
+const MAX_EXPORT_FRAMES = 1200;
+
+function updateExportFramesButton() {
+  const btn = document.getElementById("exportFramesBtn");
+  if (!btn) return;
+  btn.textContent = isExportingFrames ? "Stop Export Frames" : "Start Export Frames";
+}
+
+async function startExportFrames() {
   if (isExportingFrames) return;
   if (isRecordingVideo) {
     alert("A video recording is in progress. Wait for it to finish first.");
@@ -545,34 +568,21 @@ async function exportFramesAsZip() {
   }
 
   const fps = Math.max(1, Math.round(exportFps));
-  const duration = Math.max(1, Math.round(exportDurationSec));
-  const totalFrames = Math.max(1, Math.round(fps * duration));
-
-  const MAX_FRAMES = 1200;
-  if (totalFrames > MAX_FRAMES) {
-    alert(`Too many frames (${totalFrames}). Lower duration/FPS (max ${MAX_FRAMES} frames).`);
-    return;
-  }
 
   isExportingFrames = true;
-
-  const btn = document.getElementById("exportFramesBtn");
-  const oldText = btn ? btn.textContent : "";
-  if (btn) {
-    btn.disabled = true;
-    btn.textContent = "Exporting…";
-  }
+  stopFrameExportRequested = false;
+  frameExportFrameCount = 0;
+  frameExportFolderName = `modulo_frames_${fps}fps`;
+  frameExportZip = new JSZip();
+  frameExportFolder = frameExportZip.folder(frameExportFolderName);
+  updateExportFramesButton();
 
   const wasLooping = isLooping();
   noLoop();
 
   try {
-    const zip = new JSZip();
-    const folderName = `modulo_frames_${fps}fps_${duration}s`;
-    const folder = zip.folder(folderName);
-
-    for (let i = 0; i < totalFrames; i++) {
-      exportTimeOverride = i / fps;
+    while (!stopFrameExportRequested && frameExportFrameCount < MAX_EXPORT_FRAMES) {
+      exportTimeOverride = frameExportFrameCount / fps;
 
       draw();
 
@@ -580,23 +590,29 @@ async function exportFramesAsZip() {
         p5canvas.elt.toBlob(resolve, "image/png");
       });
 
-      const filename = `frame_${String(i).padStart(4, "0")}.png`;
-      folder.file(filename, blob);
+      const filename = `frame_${String(frameExportFrameCount).padStart(4, "0")}.png`;
+      frameExportFolder.file(filename, blob);
+      frameExportFrameCount++;
     }
 
-    exportTimeOverride = null;
+    if (frameExportFrameCount >= MAX_EXPORT_FRAMES) {
+      alert(`Reached the ${MAX_EXPORT_FRAMES}-frame safety limit — stopping and saving what was captured so far.`);
+    }
 
-    const zipBlob = await zip.generateAsync({ type: "blob" });
-    const url = URL.createObjectURL(zipBlob);
+    if (frameExportFrameCount > 0) {
+      const zipBlob = await frameExportZip.generateAsync({ type: "blob" });
+      const url = URL.createObjectURL(zipBlob);
 
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `${folderName}.zip`;
-    document.body.appendChild(a);
-    a.click();
-    a.remove();
+      const durationSec = (frameExportFrameCount / fps).toFixed(1);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `${frameExportFolderName}_${durationSec}s.zip`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
 
-    URL.revokeObjectURL(url);
+      URL.revokeObjectURL(url);
+    }
   } catch (err) {
     console.error(err);
     alert("Export failed. See console for details.");
@@ -605,11 +621,15 @@ async function exportFramesAsZip() {
     if (wasLooping) loop();
 
     isExportingFrames = false;
-    if (btn) {
-      btn.disabled = false;
-      btn.textContent = oldText || "↓ Export Frames (ZIP)";
-    }
+    frameExportZip = null;
+    frameExportFolder = null;
+    updateExportFramesButton();
   }
+}
+
+function stopExportFrames() {
+  if (!isExportingFrames) return;
+  stopFrameExportRequested = true;
 }
 
 // ------------------------------------
@@ -672,7 +692,7 @@ async function recordAndExportVideo() {
   }
 
   const fps = Math.max(1, Math.round(exportFps));
-  const durationSec = Math.max(1, Math.round(exportDurationSec));
+  const durationSec = Math.max(1, Math.round(recordDurationSec));
 
   isRecordingVideo = true;
 
@@ -1515,21 +1535,25 @@ if (exportFpsSlider) {
   });
 }
 
-// Export Duration slider
-const exportDurSlider = document.getElementById("exportDurSlider");
-if (exportDurSlider) {
-  exportDurSlider.addEventListener("input", (e) => {
-    exportDurationSec = parseInt(e.target.value, 10);
-    const v = document.getElementById("exportDurValue");
-    if (v) v.textContent = exportDurationSec;
+// Record Duration slider (Record Video only — Export Frames uses Start/Stop instead)
+const recordDurSlider = document.getElementById("recordDurSlider");
+if (recordDurSlider) {
+  recordDurSlider.addEventListener("input", (e) => {
+    recordDurationSec = parseInt(e.target.value, 10);
+    const v = document.getElementById("recordDurValue");
+    if (v) v.textContent = recordDurationSec;
   });
 }
 
-// Export button
+// Export Frames button — toggles Start/Stop depending on current state
 const exportFramesBtn = document.getElementById("exportFramesBtn");
 if (exportFramesBtn) {
   exportFramesBtn.addEventListener("click", () => {
-    exportFramesAsZip();
+    if (isExportingFrames) {
+      stopExportFrames();
+    } else {
+      startExportFrames();
+    }
   });
 }
 
