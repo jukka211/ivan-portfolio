@@ -147,6 +147,8 @@ function Slide({
     }
   }
 
+  const posterUrl = slide.poster ? urlFor(slide.poster).width(1600).quality(80).url() : undefined
+
   return (
     <div
       ref={setRefs}
@@ -166,6 +168,7 @@ function Slide({
               src={slide.video.asset.url}
               className={styles.media}
               fitMode={slide.fitMode === 'cover' ? 'cover' : 'contain'}
+              poster={posterUrl}
               // This <LazyVideo> only exists in the DOM while shouldRender is
               // already true — that's the lazy-loading. Without an explicit
               // `active`, LazyVideo runs its own independent
@@ -190,7 +193,7 @@ function Slide({
                   : undefined
               }
             />
-            {!isVideoActive && <div className={styles.videoPlaceholder}>Video loads…</div>}
+            {!isVideoActive && !posterUrl && <div className={styles.videoPlaceholder}>Video loads…</div>}
           </>
         ) : slide.mediaType === 'image' && slide.image ? (
           <img
@@ -270,10 +273,17 @@ function ColumnMedia({
   active: boolean
 }) {
   if (media?.mediaType === 'video' && media.video?.asset?.url) {
+    const posterUrl = media.poster ? urlFor(media.poster).width(1200).quality(80).url() : undefined
     return (
       <div className={styles.twoColumnImageCell}>
-        <LazyVideo src={media.video.asset.url} className={styles.twoColumnImage} fitMode={fit} active={active} />
-        {!active && <div className={styles.videoPlaceholder}>Video loads…</div>}
+        <LazyVideo
+          src={media.video.asset.url}
+          className={styles.twoColumnImage}
+          fitMode={fit}
+          active={active}
+          poster={posterUrl}
+        />
+        {!active && !posterUrl && <div className={styles.videoPlaceholder}>Video loads…</div>}
       </div>
     )
   }

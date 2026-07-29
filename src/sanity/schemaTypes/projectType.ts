@@ -63,6 +63,20 @@ const createProjectMediaFields = () => [
     },
     hidden: ({parent}) => parent?.mediaType !== 'video',
   }),
+  defineField({
+    name: 'poster',
+    title: 'Poster (auto-generated)',
+    type: 'image',
+    readOnly: true,
+    description: "Generated automatically from the video's first frame. Do not upload manually.",
+    hidden: ({parent}) => parent?.mediaType !== 'video',
+  }),
+  defineField({
+    name: 'posterSourceAssetId',
+    type: 'string',
+    hidden: true,
+    readOnly: true,
+  }),
 ]
 
 export const projectType = defineType({

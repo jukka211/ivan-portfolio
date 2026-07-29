@@ -110,7 +110,9 @@ export const projectSlidesBySlugQuery = groq`
           originalFilename,
           mimeType
         }
-      }
+      },
+      poster,
+      posterSourceAssetId
     },
     rightColumn{
       mediaType,
@@ -121,7 +123,9 @@ export const projectSlidesBySlugQuery = groq`
           originalFilename,
           mimeType
         }
-      }
+      },
+      poster,
+      posterSourceAssetId
     },
     video{
       asset->{
@@ -129,7 +133,9 @@ export const projectSlidesBySlugQuery = groq`
         originalFilename,
         mimeType
       }
-    }
+    },
+    poster,
+    posterSourceAssetId
   }
 }
 `
@@ -271,7 +277,9 @@ export const projectBySlugQuery = groq`
           originalFilename,
           mimeType
         }
-      }
+      },
+      poster,
+      posterSourceAssetId
     },
     rightColumn{
       mediaType,
@@ -282,7 +290,9 @@ export const projectBySlugQuery = groq`
           originalFilename,
           mimeType
         }
-      }
+      },
+      poster,
+      posterSourceAssetId
     },
     video{
       asset->{
@@ -290,8 +300,56 @@ export const projectBySlugQuery = groq`
         originalFilename,
         mimeType
       }
+    },
+    poster,
+    posterSourceAssetId
+  }
+}
+`
+
+// Internal projection consumed only by scripts/poster-lib.mjs (via the
+// generate-poster webhook route and the backfill script) — includes the
+// video asset's _id, which the public-facing queries above deliberately
+// leave out since the browser never needs it.
+const posterInputProjection = `
+  _id,
+  coverMedia{
+    mediaType,
+    video{asset->{_id, url}},
+    poster,
+    posterSourceAssetId
+  },
+  slides[]{
+    _key,
+    slideType,
+    mediaType,
+    video{asset->{_id, url}},
+    poster,
+    posterSourceAssetId,
+    leftColumn{
+      mediaType,
+      video{asset->{_id, url}},
+      poster,
+      posterSourceAssetId
+    },
+    rightColumn{
+      mediaType,
+      video{asset->{_id, url}},
+      poster,
+      posterSourceAssetId
     }
   }
+`
+
+export const projectPosterInputByIdQuery = groq`
+*[_type == "project" && _id == $id][0]{
+  ${posterInputProjection}
+}
+`
+
+export const allProjectsPosterInputQuery = groq`
+*[_type == "project"]{
+  ${posterInputProjection}
 }
 `
 

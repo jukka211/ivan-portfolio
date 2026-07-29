@@ -17,6 +17,8 @@ export type CoverMedia = {
   background?: SlideBackground
   image?: SanityImageSource
   video?: VideoAsset
+  poster?: SanityImageSource
+  posterSourceAssetId?: string
 }
 
 export type ProjectCard = {
@@ -36,6 +38,8 @@ export type MediaSlide = {
   background?: SlideBackground
   image?: SanityImageSource
   video?: VideoAsset
+  poster?: SanityImageSource
+  posterSourceAssetId?: string
 }
 
 export type CreditItem = {
@@ -83,6 +87,8 @@ export type ColumnMedia = {
   mediaType?: 'image' | 'video'
   image?: SanityImageSource
   video?: VideoAsset
+  poster?: SanityImageSource
+  posterSourceAssetId?: string
 }
 
 export type TwoColumnImageSlide = {

@@ -11,6 +11,14 @@ const nextConfig: NextConfig = {
     ],
   },
 
+  // The generate-poster route spawns the ffmpeg-static binary directly (see
+  // src/app/api/generate-poster/route.ts) — Next's own file tracing doesn't
+  // pick it up automatically since it's resolved by path at runtime rather
+  // than via a plain `require()`.
+  outputFileTracingIncludes: {
+    '/api/generate-poster': ['./node_modules/ffmpeg-static/ffmpeg'],
+  },
+
   async rewrites() {
     return [
       {
