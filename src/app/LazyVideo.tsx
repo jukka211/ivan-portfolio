@@ -15,6 +15,15 @@ type LazyVideoProps = {
   /** Fires once the video's real dimensions are known (native `loadedmetadata`). */
   onLoadedMetadata?: (dimensions: {videoWidth: number; videoHeight: number}) => void
   /**
+   * Fires on the native `playing` event — the point a real frame is actually
+   * on screen, not just requested. `preload="none"` means activation always
+   * starts a cold fetch, and mobile browsers tend to clear the visible
+   * `poster` as soon as `.load()` runs rather than waiting for that frame —
+   * leaving a black gap between the two. Callers use this to keep their own
+   * poster image layered on top until this fires, papering over that gap.
+   */
+  onPlaying?: () => void
+  /**
    * On mobile (pointer: coarse), skip lazy loading entirely: load and play
    * immediately, never unload, overriding `active`/`priority`. Desktop is
    * unaffected. Off by default — opt in per call site.
@@ -31,6 +40,7 @@ export default function LazyVideo({
   active,
   poster,
   onLoadedMetadata,
+  onPlaying,
   disableLazyLoadOnMobile = false,
 }: LazyVideoProps) {
   const ref = useRef<HTMLVideoElement | null>(null)
@@ -108,6 +118,7 @@ export default function LazyVideo({
       playsInline
       poster={poster}
       preload={priority || active || bypassForMobile ? 'auto' : 'none'}
+      onPlaying={onPlaying}
       onLoadedMetadata={
         onLoadedMetadata
           ? (event) => {

@@ -131,6 +131,16 @@ function Slide({
   // images, it's the steady-state box whenever this isn't the active one.
   const [aspectRatio, setAspectRatio] = useState<number | null>(null)
 
+  // Whether the active video has actually painted a frame yet (native
+  // `playing` event) — see the poster <img> overlay below for why this is
+  // tracked separately from isVideoActive rather than trusting the video's
+  // own `poster` attribute to cover the gap.
+  const [hasPainted, setHasPainted] = useState(false)
+
+  useEffect(() => {
+    if (!isVideoActive) setHasPainted(false)
+  }, [isVideoActive])
+
   const setRefs = (el: HTMLDivElement | null) => {
     slideRef(el)
   }
@@ -185,6 +195,7 @@ function Slide({
               // (too many concurrent video decoders). Only the single
               // slide nearest the viewport center is ever active.
               active={isVideoActive}
+              onPlaying={() => setHasPainted(true)}
               onLoadedMetadata={
                 aspectRatio === null
                   ? ({videoWidth, videoHeight}) => {
@@ -194,6 +205,14 @@ function Slide({
               }
             />
             {!isVideoActive && !posterUrl && <div className={styles.videoPlaceholder}>Video loads…</div>}
+            {isVideoActive && !hasPainted && posterUrl && (
+              <img
+                src={posterUrl}
+                alt=""
+                className={styles.posterOverlay}
+                style={{objectFit: slide.fitMode === 'cover' ? 'cover' : 'contain'}}
+              />
+            )}
           </>
         ) : slide.mediaType === 'image' && slide.image ? (
           <img
@@ -272,6 +291,15 @@ function ColumnMedia({
   fit: 'cover' | 'contain'
   active: boolean
 }) {
+  // See the matching hasPainted comment on <Slide> — same gap, same fix.
+  // Declared unconditionally (not inside the video branch below) since
+  // hooks can't follow this component's early returns.
+  const [hasPainted, setHasPainted] = useState(false)
+
+  useEffect(() => {
+    if (!active) setHasPainted(false)
+  }, [active])
+
   if (media?.mediaType === 'video' && media.video?.asset?.url) {
     const posterUrl = media.poster ? urlFor(media.poster).width(1200).quality(80).url() : undefined
     return (
@@ -282,8 +310,12 @@ function ColumnMedia({
           fitMode={fit}
           active={active}
           poster={posterUrl}
+          onPlaying={() => setHasPainted(true)}
         />
         {!active && !posterUrl && <div className={styles.videoPlaceholder}>Video loads…</div>}
+        {active && !hasPainted && posterUrl && (
+          <img src={posterUrl} alt="" className={styles.posterOverlay} style={{objectFit: fit}} />
+        )}
       </div>
     )
   }

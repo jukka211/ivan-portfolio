@@ -65,6 +65,18 @@
   pointer-events: none;
 }
 
+/* layered over an active video until it actually paints a frame (see
+   hasPainted in ImageSlider.tsx) — masks the black gap between the native
+   poster being cleared and playback really starting. */
+.posterOverlay {
+  position: absolute;
+  inset: 0;
+  display: block;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+
 /* big-text slides have no media to size against, so the shared 90vh cap
    above only clipped long copy instead of doing anything useful — this
    slide's height should just be its text's own natural (flex-basis: auto)
