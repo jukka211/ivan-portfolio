@@ -185,7 +185,6 @@ function Slide({
               // (too many concurrent video decoders). Only the single
               // slide nearest the viewport center is ever active.
               active={isVideoActive}
-              disableLazyLoadOnMobile
               onLoadedMetadata={
                 aspectRatio === null
                   ? ({videoWidth, videoHeight}) => {
@@ -283,7 +282,6 @@ function ColumnMedia({
           fitMode={fit}
           active={active}
           poster={posterUrl}
-          disableLazyLoadOnMobile
         />
         {!active && !posterUrl && <div className={styles.videoPlaceholder}>Video loads…</div>}
       </div>
