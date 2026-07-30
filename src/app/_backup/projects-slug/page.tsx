@@ -142,7 +142,6 @@ export default async function ProjectPage({
                   className={styles.media}
                   priority={index === 0}
                   fitMode={fitMode}
-                  disableLazyLoadOnMobile
                 />
               ) : imageUrl ? (
                 <Image

@@ -29,6 +29,9 @@ let useAutoColCount = false;
 let autoColMin = 3;
 let autoColMax = 3;
 
+// When true, the final column count (manual or auto) is rounded to the nearest even number.
+let useEvenColsOnly = false;
+
 // --- Export frames controls ---
 let exportFps = 30;
 
@@ -255,7 +258,7 @@ let WORD_DATA = {};
 const BASE_SIZE = 200;
 
 // ------------------------------------
-// Auto text mode (random prefix/word pair, swapped on stretch extremes)
+// Auto text mode (random prefix/word pair, swapped at Inner Line Stretch phase triggers)
 // ------------------------------------
 const AUTO_PREFIXES = ["over", "under", "post", "hyper", "meta"];
 const AUTO_LINE3_WORDS = ["Systems", "Democracy", "Culture", "Data", "Design", "Truth", "Love"];
@@ -277,24 +280,23 @@ function triggerAutoTextSwap() {
   autoLine3Word = pickRandomDifferent(AUTO_LINE3_WORDS, autoLine3Word);
 }
 
-// Tracks each animated stretch oscillator frame-to-frame so we can detect the
-// exact moment it turns around at a local min/max ("lowest or highest
-// value") — that's the trigger for auto mode to swap in a new pair.
-const stretchExtremumTracker = {
-  col: { prev: null, increasing: null },
-  row: { prev: null, increasing: null },
-};
+// Inner Line Stretch phase (innerT, wrapped to its cycle length of 1/mapSpeed —
+// the same span as the innerStretchSlider range) crosses these two points once
+// per cycle. That's the trigger for auto mode to swap in a new word pair.
+const INNER_PHASE_TRIGGERS = [2.0, 3.8];
+let innerPhasePrev = null;
 
-function checkStretchExtremum(axis, oscValue) {
-  const state = stretchExtremumTracker[axis];
-  if (state.prev !== null) {
-    const increasing = oscValue > state.prev;
-    if (state.increasing !== null && increasing !== state.increasing && textMode === "auto") {
-      triggerAutoTextSwap();
+function checkInnerStretchPhase(innerT) {
+  const cycleLen = 1 / mapSpeed;
+  const phase = ((innerT % cycleLen) + cycleLen) % cycleLen;
+  if (innerPhasePrev !== null && textMode === "auto") {
+    for (const trigger of INNER_PHASE_TRIGGERS) {
+      if (innerPhasePrev < trigger && phase >= trigger) {
+        triggerAutoTextSwap();
+      }
     }
-    state.increasing = increasing;
   }
-  state.prev = oscValue;
+  innerPhasePrev = phase;
 }
 
 // ------------------------------------
@@ -331,7 +333,7 @@ const COLOR_POOL = [
   "#FF0000",
   "#00FF00",
   "#0000FF",
-  "#FFFFFF"
+  "FFFFFF"
 ];
 
 const BW_POOL = [
@@ -854,6 +856,13 @@ function calculateAutoColumnCount() {
   return max(1, colCount);
 }
 
+// Applies the "Even Columns Only" constraint. Shared by draw() and the
+// Columns slider's readout, so the displayed number always matches what's
+// actually rendered.
+function applyEvenColsConstraint(n) {
+  return useEvenColsOnly ? max(2, round(n / 2) * 2) : n;
+}
+
 // ------------------------------------
 // Main draw
 // ------------------------------------
@@ -861,15 +870,17 @@ function draw() {
   background(bgColor);
   let t = timeSeconds();
 
+  const innerT = (innerStretchMode === "animated") ? t : innerStretchManual;
+  checkInnerStretchPhase(innerT);
+
   // 1) Column widths (animated / manual)
-  let cols = max(1, useAutoColCount ? calculateAutoColumnCount() : numCols);
+  let cols = applyEvenColsConstraint(max(1, useAutoColCount ? calculateAutoColumnCount() : numCols));
   let colWeights = new Array(cols);
   let sumColW = 0;
 
   let colOsc;
   if (colStretchMode === "animated") {
     colOsc = sin(TWO_PI * t * COL_MAP_SPEED);
-    checkStretchExtremum("col", colOsc);
   } else if (colStretchMode === "manual") {
     colOsc = colStretchManual;
   } else {
@@ -899,7 +910,6 @@ function draw() {
   let rowOsc = null;
   if (rowStretchMode === "animated") {
     rowOsc = sin(TWO_PI * t * ROW_ANIM_SPEED);
-    checkStretchExtremum("row", rowOsc);
   }
 
   for (let c = 0; c < cols; c++) {
@@ -1287,8 +1297,17 @@ if (colSliderEl) {
   colSliderEl.addEventListener('input', (e) => {
     numCols = parseInt(e.target.value, 10);
     const v = document.getElementById('colValue');
-    if (v) v.textContent = numCols;
+    if (v) v.textContent = applyEvenColsConstraint(numCols);
     if (linkMaxRowsToCols) syncMaxRowsToColumns();
+  });
+}
+
+const evenColsOnlyCheckbox = document.getElementById('evenColsOnlyCheckbox');
+if (evenColsOnlyCheckbox) {
+  evenColsOnlyCheckbox.addEventListener('change', (e) => {
+    useEvenColsOnly = e.target.checked;
+    const v = document.getElementById('colValue');
+    if (v) v.textContent = applyEvenColsConstraint(numCols);
   });
 }
 

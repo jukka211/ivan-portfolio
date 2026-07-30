@@ -185,7 +185,6 @@ function Slide({
               // (too many concurrent video decoders). Only the single
               // slide nearest the viewport center is ever active.
               active={isVideoActive}
-              disableLazyLoadOnMobile
               onLoadedMetadata={
                 aspectRatio === null
                   ? ({videoWidth, videoHeight}) => {
@@ -283,7 +282,6 @@ function ColumnMedia({
           fitMode={fit}
           active={active}
           poster={posterUrl}
-          disableLazyLoadOnMobile
         />
         {!active && !posterUrl && <div className={styles.videoPlaceholder}>Video loads…</div>}
       </div>
@@ -555,14 +553,7 @@ function CoverMedia({project}: {project: Project}) {
   const fit = cover.fitMode === 'cover' ? 'cover' : 'contain'
 
   if (cover.mediaType === 'video' && cover.video?.asset?.url) {
-    return (
-      <LazyVideo
-        src={cover.video.asset.url}
-        className={styles.centerMedia}
-        fitMode={fit}
-        disableLazyLoadOnMobile
-      />
-    )
+    return <LazyVideo src={cover.video.asset.url} className={styles.centerMedia} fitMode={fit} />
   }
 
   if (cover.mediaType === 'image' && cover.image) {

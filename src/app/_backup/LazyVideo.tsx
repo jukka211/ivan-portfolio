@@ -14,12 +14,6 @@ type LazyVideoProps = {
   poster?: string
   /** Fires once the video's real dimensions are known (native `loadedmetadata`). */
   onLoadedMetadata?: (dimensions: {videoWidth: number; videoHeight: number}) => void
-  /**
-   * On mobile (pointer: coarse), skip lazy loading entirely: load and play
-   * immediately, never unload, overriding `active`/`priority`. Desktop is
-   * unaffected. Off by default — opt in per call site.
-   */
-  disableLazyLoadOnMobile?: boolean
 }
 
 export default function LazyVideo({
@@ -31,20 +25,12 @@ export default function LazyVideo({
   active,
   poster,
   onLoadedMetadata,
-  disableLazyLoadOnMobile = false,
 }: LazyVideoProps) {
   const ref = useRef<HTMLVideoElement | null>(null)
   const [observedActive, setObservedActive] = useState(priority)
-  const [bypassForMobile, setBypassForMobile] = useState(false)
+  const isActive = active ?? observedActive
 
   useEffect(() => {
-    if (disableLazyLoadOnMobile) setBypassForMobile(window.matchMedia('(pointer: coarse)').matches)
-  }, [disableLazyLoadOnMobile])
-
-  const isActive = bypassForMobile ? true : active ?? observedActive
-
-  useEffect(() => {
-    if (bypassForMobile) return
     if (active !== undefined) return
 
     const el = ref.current
@@ -80,7 +66,7 @@ export default function LazyVideo({
       observer.disconnect()
       deactivate()
     }
-  }, [priority, rootMargin, active, bypassForMobile])
+  }, [priority, rootMargin, active])
 
   useEffect(() => {
     const el = ref.current
@@ -107,7 +93,7 @@ export default function LazyVideo({
       loop
       playsInline
       poster={poster}
-      preload={priority || active || bypassForMobile ? 'auto' : 'none'}
+      preload={priority || active ? 'auto' : 'none'}
       onLoadedMetadata={
         onLoadedMetadata
           ? (event) => {
