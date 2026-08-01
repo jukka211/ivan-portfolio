@@ -1,6 +1,6 @@
 'use client'
 
-import {useRef, useState} from 'react'
+import {useLayoutEffect, useRef, useState} from 'react'
 import Link from 'next/link'
 import ProjectRow from './ProjectRow'
 import ImageSlider from './ImageSlider'
@@ -32,6 +32,13 @@ export default function Version3Page({
 }) {
   const [openSlug, setOpenSlug] = useState<string | null>(null)
   const [hoveredSlug, setHoveredSlug] = useState<string | null>(null)
+  // Desktop only: whichever cover the image slider's idle stage is currently
+  // showing (cursor-scrubbed or autoplaying) — see ImageSlider's
+  // onIdleCoverChange. Mirrored onto the matching ProjectRow below so
+  // scrubbing through covers highlights its row the same way actually
+  // hovering that row would, without the two fighting over `hoveredSlug`
+  // (that one drives ImageSlider itself — see the hoveredProject case).
+  const [sliderActiveSlug, setSliderActiveSlug] = useState<string | undefined>(undefined)
   // Whether the right pane shows the Services Details panel instead of the
   // image slider — mutually exclusive with an open project (each closes
   // the other so the right pane never has to arbitrate between them).
@@ -66,6 +73,23 @@ export default function Version3Page({
   const scrollToPanel = (ref: React.RefObject<HTMLDivElement | null>) => {
     ref.current?.scrollIntoView({behavior: 'smooth', inline: 'start', block: 'nearest'})
   }
+
+  // Mobile default: land on Gallery, not Info Lists — a plain (behavior:
+  // 'auto', so instant) scrollIntoView here, before the browser's first
+  // paint, rather than the 'smooth' one scrollToPanel uses for an
+  // already-visible page reacting to a tap. useLayoutEffect (not
+  // useEffect) is what makes that "before paint" true: it flushes this
+  // scroll + the matching activePanel update synchronously off the initial
+  // render, so the page never actually paints the Info Lists panel first.
+  // Desktop shows both panes side by side (no scroll position to set) and
+  // .mobileNav is hidden there anyway, so this only matters — and only
+  // runs — below the same max-width:1100px breakpoint everything else
+  // mobile-specific here is gated on.
+  useLayoutEffect(() => {
+    if (!window.matchMedia('(max-width: 1100px)').matches) return
+    rightPaneRef.current?.scrollIntoView({inline: 'start', block: 'nearest'})
+    setActivePanel('gallery')
+  }, [])
 
   const handlePageScroll = (event: React.UIEvent<HTMLDivElement>) => {
     const el = event.currentTarget
@@ -192,6 +216,7 @@ export default function Version3Page({
                   project={project}
                   sectionLabel={index === 0 ? 'Projects:' : undefined}
                   isOpen={project.slug === openSlug}
+                  isHighlighted={project.slug === sliderActiveSlug}
                   onToggle={() => toggleProject(project.slug)}
                   onHoverChange={(hovering) =>
                     setHoveredSlug((current) => {
@@ -273,6 +298,7 @@ export default function Version3Page({
               activeProject={openProject}
               hoveredProject={hoveredProject}
               onOpenProject={toggleProject}
+              onIdleCoverChange={setSliderActiveSlug}
             />
           )}
         </div>

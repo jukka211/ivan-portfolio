@@ -2,6 +2,7 @@
 
 /* idle / hover mode: one cover, centered, no scrollbar */
 .centerStage {
+  position: relative;
   height: 100%;
   width: 100%;
   display: flex;
@@ -32,6 +33,7 @@
    it as the mobile layout's own horizontal swipe-between-panels gesture
    (.page's scroll-snap carousel in version3.module.css). */
 .touchSliderViewport {
+  position: relative;
   height: 100%;
   width: 100%;
   overflow: hidden;
@@ -53,7 +55,62 @@
   align-items: center;
   justify-content: center;
   overflow: hidden;
-  padding: clamp(16px, 3vw, 32px);
+  padding: 8px;
+}
+
+/* [1] [2] [3] … cover index, right edge, vertically centered — shared by
+   both idle stages (desktop .centerStage, mobile .touchSliderViewport; both
+   set position:relative above so this anchors to the stage itself, not some
+   further-out ancestor). Purely a visual readout of where you are in the
+   cover list, not a click target — pointer-events:none keeps it out of the
+   way of the scrub/swipe/click handling the stage itself already does.
+   Each item's own glyphs are drawn sideways via vertical-rl (reading
+   top-to-bottom, rotated 90° clockwise) while the items themselves still
+   stack in plain top-to-bottom order — rotating the *container* instead
+   would turn that stacking sideways too, which isn't what's wanted here. */
+.coverIndicator {
+  position: absolute;
+  top: 50%;
+  right: 4px;
+  transform: translateY(-50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  pointer-events: none;
+}
+
+.coverIndicatorItem {
+  writing-mode: vertical-rl;
+  color: var(--muted);
+  font-family: var(--font-family);
+  font-size: var(--text-size);
+}
+
+.coverIndicatorItem[data-active] {
+  color: var(--fg);
+}
+
+/* mobile (TouchCoverSlider): bottom edge, horizontally centered, upright —
+   see the `horizontal` prop comment on CoverIndicator in ImageSlider.tsx.
+   .touchSliderViewport clips anything past its own edges (overflow:hidden),
+   so a single unwrapped row would cut off — and make unreachable — however
+   many numbers didn't fit past a handful of covers; wrapping onto centered
+   lines instead keeps every number visible regardless of cover count. */
+.coverIndicatorHorizontal {
+  top: auto;
+  right: auto;
+  bottom: clamp(12px, 4vw, 24px);
+  left: 50%;
+  transform: translateX(-50%);
+  flex-direction: row;
+  flex-wrap: wrap;
+  justify-content: center;
+  max-width: calc(100% - 2 * clamp(12px, 4vw, 24px));
+}
+
+.coverIndicatorHorizontal .coverIndicatorItem {
+  writing-mode: horizontal-tb;
 }
 
 /* open mode: the selected project's own slides, scrollable */

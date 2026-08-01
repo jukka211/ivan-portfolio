@@ -619,6 +619,41 @@ function CoverMedia({project, active}: {project: Project; active?: boolean}) {
   return null
 }
 
+// [1] [2] [3] … one per cover, active one lit up (var(--fg), white) against
+// the rest dimmed (var(--muted), gray) — shared by both idle stages (desktop
+// cursor-scrub and the mobile swipe carousel) so there's one definition of
+// what the indicator looks like. `horizontal` switches it from the desktop
+// default (right edge, vertically centered, glyphs rotated 90° clockwise)
+// to the mobile layout (bottom edge, horizontally centered, upright) — a
+// prop straight from which stage is rendering it, not a width media query,
+// since isTouchDevice (which picks the stage) and viewport width can
+// disagree (a touch laptop/tablet in landscape, say).
+function CoverIndicator({
+  count,
+  activeIndex,
+  horizontal,
+}: {
+  count: number
+  activeIndex: number
+  horizontal?: boolean
+}) {
+  if (count <= 1) return null
+
+  const className = horizontal
+    ? `${styles.coverIndicator} ${styles.coverIndicatorHorizontal}`
+    : styles.coverIndicator
+
+  return (
+    <div className={className}>
+      {Array.from({length: count}, (_, i) => (
+        <span key={i} className={styles.coverIndicatorItem} data-active={i === activeIndex || undefined}>
+          [{i + 1}]
+        </span>
+      ))}
+    </div>
+  )
+}
+
 // Only the current cover plus one neighbor on each side ever mount real
 // media — same windowing idea as SlideList's RENDER_WINDOW, just for a
 // one-slide-per-screen carousel instead of a scrolling list. Anything
@@ -737,6 +772,7 @@ function TouchCoverSlider({
           </div>
         ))}
       </div>
+      <CoverIndicator count={coverProjects.length} activeIndex={clampedIndex} horizontal />
     </div>
   )
 }
@@ -746,11 +782,20 @@ export default function ImageSlider({
   activeProject,
   hoveredProject,
   onOpenProject,
+  onIdleCoverChange,
 }: {
   projects: Project[]
   activeProject: Project | null
   hoveredProject: Project | null
   onOpenProject: (slug?: string) => void
+  // Desktop only: fires with whichever cover the idle stage is currently
+  // showing (cursor-scrubbed or autoplaying), or undefined once nothing is —
+  // an open project, a hovered row (that already has its own static cover,
+  // see the hoveredProject branch below), or a touch device (its own swipe
+  // carousel, unrelated to this). Lets the caller mirror that selection onto
+  // the corresponding row in listColumn without ImageSlider needing to know
+  // anything about rows.
+  onIdleCoverChange?: (slug?: string) => void
 }) {
   const [slides, setSlides] = useState<ProjectSlide[] | null>(null)
   const cache = useRef(new Map<string, ProjectSlide[]>())
@@ -767,6 +812,19 @@ export default function ImageSlider({
   }, [])
 
   const coverProjects = useMemo(() => projects.filter((project) => project.coverMedia), [projects])
+
+  // Reports the desktop idle stage's currently-shown cover up to the parent
+  // (see onIdleCoverChange above) — cleared (undefined) the moment the idle
+  // stage isn't what's on screen, so a stale highlight doesn't linger on a
+  // row after a project opens or a different row is hovered directly.
+  useEffect(() => {
+    if (!onIdleCoverChange) return
+    if (isTouchDevice || activeProject || hoveredProject || coverProjects.length === 0) {
+      onIdleCoverChange(undefined)
+      return
+    }
+    onIdleCoverChange(coverProjects[Math.min(hoverIndex, coverProjects.length - 1)]?.slug)
+  }, [onIdleCoverChange, isTouchDevice, activeProject, hoveredProject, coverProjects, hoverIndex])
 
   // Idle stage (desktop only): cursor X position (as a ratio of the stage
   // width) selects which cover is shown, splitting the stage into one
@@ -871,7 +929,8 @@ export default function ImageSlider({
   }
 
   // Desktop: cursor X position picks the cover; click opens it.
-  const current = coverProjects[Math.min(hoverIndex, coverProjects.length - 1)]
+  const activeIndex = Math.min(hoverIndex, coverProjects.length - 1)
+  const current = coverProjects[activeIndex]
 
   return (
     <div
@@ -881,6 +940,7 @@ export default function ImageSlider({
       onClick={() => onOpenProject(current.slug)}
     >
       <CoverMedia project={current} />
+      <CoverIndicator count={coverProjects.length} activeIndex={activeIndex} />
     </div>
   )
 }

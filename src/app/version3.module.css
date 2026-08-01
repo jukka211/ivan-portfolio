@@ -163,6 +163,13 @@
    side-by-side column, so "narrowing" it has no width to reclaim from —
    it'd just hide useful content for nothing. */
 @media (min-width: 1101px) {
+  /* Animates the rail-collapse/expand itself (the flex-basis change below);
+     listColumn needs no transition of its own since flex:1 1 0 always fills
+     whatever infoColumn gives up, so it resizes in step automatically. */
+  .infoColumn {
+    transition: flex 300ms ease;
+  }
+
   .infoColumn[data-collapsed] {
     flex: 0 0 10%;
     cursor: pointer;

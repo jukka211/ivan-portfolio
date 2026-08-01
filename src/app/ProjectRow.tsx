@@ -23,12 +23,18 @@ export default function ProjectRow({
   project,
   sectionLabel,
   isOpen,
+  isHighlighted,
   onToggle,
   onHoverChange,
 }: {
   project: Project
   sectionLabel?: string
   isOpen: boolean
+  // Desktop only: true while the image slider's idle stage is showing this
+  // project's cover (see Version3Page's sliderActiveSlug) — gets the same
+  // white-bg/black-text treatment as :hover, just driven by the slider
+  // instead of the mouse actually being over this row.
+  isHighlighted?: boolean
   onToggle: () => void
   onHoverChange: (hovering: boolean) => void
 }) {
@@ -38,6 +44,7 @@ export default function ProjectRow({
     <div
       className={styles.row}
       data-open={isOpen || undefined}
+      data-highlighted={isHighlighted || undefined}
       onMouseEnter={() => onHoverChange(true)}
       onMouseLeave={() => onHoverChange(false)}
     >

@@ -30,7 +30,8 @@
 }
 
 .header:hover,
-.row[data-open] .header {
+.row[data-open] .header,
+.row[data-highlighted] .header {
   background: #fff;
   color: #000;
   --muted: #000;
