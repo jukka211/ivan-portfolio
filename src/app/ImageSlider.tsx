@@ -578,7 +578,16 @@ function SlideList({
   )
 }
 
-function CoverMedia({project}: {project: Project}) {
+// `active` is only passed by the touch carousel below, where several covers
+// (the current one plus its window neighbors) can be mounted at once — it
+// gates LazyVideo's playback directly so only the on-screen slide actually
+// decodes/plays, the same one-video-at-a-time rule SlideList enforces for
+// the same reason (concurrent decoders crash mobile Safari/Chrome). The two
+// older call sites (hovered-row preview, desktop idle stage) never mount
+// more than one CoverMedia at a time, so they still get the old
+// disableLazyLoadOnMobile behavior (immediate play, no IntersectionObserver
+// wait) by leaving `active` undefined.
+function CoverMedia({project, active}: {project: Project; active?: boolean}) {
   const cover = project.coverMedia
   if (!cover) return null
 
@@ -590,7 +599,8 @@ function CoverMedia({project}: {project: Project}) {
         src={cover.video.asset.url}
         className={styles.centerMedia}
         fitMode={fit}
-        disableLazyLoadOnMobile
+        active={active}
+        disableLazyLoadOnMobile={active === undefined}
       />
     )
   }
@@ -609,6 +619,128 @@ function CoverMedia({project}: {project: Project}) {
   return null
 }
 
+// Only the current cover plus one neighbor on each side ever mount real
+// media — same windowing idea as SlideList's RENDER_WINDOW, just for a
+// one-slide-per-screen carousel instead of a scrolling list. Anything
+// further away renders an empty (but identically sized) slide, picking up
+// its media once a swipe brings it within the window.
+const TOUCH_RENDER_WINDOW = 1
+
+// Fraction of the viewport width a swipe has to cross before it counts as a
+// deliberate "go to the next/previous cover" instead of springing back to
+// the one already showing.
+const TOUCH_SWIPE_THRESHOLD_RATIO = 0.2
+
+// Total finger movement (either axis) below which a touch counts as a tap
+// (open the project) rather than a swipe — real swipes almost always drift
+// a little on the perpendicular axis too, so this checks combined movement
+// rather than just horizontal distance.
+const TOUCH_TAP_MAX_MOVEMENT_PX = 10
+
+// Mobile-only carousel: one project cover per screen, swipe left/right to
+// move between them, tap the one showing to open it. Deliberately its own
+// component (rather than another branch bolted onto the desktop idle stage
+// below) since it tracks an actual drag gesture — live finger-following
+// translateX, then either a spring-back or a snap to the next/previous
+// cover — which has nothing in common with the desktop stage's
+// cursor-position scrubbing.
+//
+// Opening a project is handled directly from the tap branch in
+// handleTouchEnd, not a shared onClick: after a real swipe, mobile browsers
+// still fire a compatibility click at touchend, and with onClick reading
+// "whichever cover is showing now" that would reopen whatever the swipe
+// just navigated to. Not wiring onClick at all sidesteps that regardless of
+// how reliably a given browser suppresses that synthetic click.
+function TouchCoverSlider({
+  coverProjects,
+  onOpenProject,
+}: {
+  coverProjects: Project[]
+  onOpenProject: (slug?: string) => void
+}) {
+  const [index, setIndex] = useState(0)
+  // Live drag offset in px, layered on top of `index`'s own -100%-per-slide
+  // position — reset to 0 the moment a touch ends, whether it snapped to a
+  // new index or sprang back to the same one (see the transition comment
+  // below for why that doesn't jump).
+  const [dragX, setDragX] = useState(0)
+  // No CSS transition while a finger is actually down (the track should
+  // track it 1:1, not lag behind an eased animation) — switched back on at
+  // touchend, right as `dragX` resets to 0 and/or `index` changes, so the
+  // browser animates from the last drag position to the settled one instead
+  // of jumping straight there.
+  const [isDragging, setIsDragging] = useState(false)
+  const viewportRef = useRef<HTMLDivElement | null>(null)
+  const touchStartRef = useRef<{x: number; y: number} | null>(null)
+
+  // Defensive only: coverProjects.length is never expected to change while
+  // this component is mounted, but this keeps `index` from ever pointing
+  // past the end if it somehow did.
+  const clampedIndex = Math.min(index, coverProjects.length - 1)
+
+  const handleTouchStart = (event: React.TouchEvent<HTMLDivElement>) => {
+    const touch = event.touches[0]
+    touchStartRef.current = {x: touch.clientX, y: touch.clientY}
+    setIsDragging(true)
+  }
+
+  const handleTouchMove = (event: React.TouchEvent<HTMLDivElement>) => {
+    const start = touchStartRef.current
+    if (!start) return
+    setDragX(event.touches[0].clientX - start.x)
+  }
+
+  const handleTouchEnd = (event: React.TouchEvent<HTMLDivElement>) => {
+    const start = touchStartRef.current
+    touchStartRef.current = null
+    setIsDragging(false)
+    setDragX(0)
+    if (!start) return
+
+    const touch = event.changedTouches[0]
+    const deltaX = touch.clientX - start.x
+    const deltaY = touch.clientY - start.y
+
+    if (Math.abs(deltaX) < TOUCH_TAP_MAX_MOVEMENT_PX && Math.abs(deltaY) < TOUCH_TAP_MAX_MOVEMENT_PX) {
+      onOpenProject(coverProjects[clampedIndex]?.slug)
+      return
+    }
+
+    const viewportWidth = viewportRef.current?.clientWidth || 1
+    if (Math.abs(deltaX) < viewportWidth * TOUCH_SWIPE_THRESHOLD_RATIO) return
+
+    const direction = deltaX < 0 ? 1 : -1
+    setIndex((current) => Math.min(Math.max(current + direction, 0), coverProjects.length - 1))
+  }
+
+  return (
+    <div
+      ref={viewportRef}
+      className={styles.touchSliderViewport}
+      onTouchStart={handleTouchStart}
+      onTouchMove={handleTouchMove}
+      onTouchEnd={handleTouchEnd}
+      onTouchCancel={handleTouchEnd}
+    >
+      <div
+        className={styles.touchSliderTrack}
+        style={{
+          transform: `translateX(calc(${clampedIndex * -100}% + ${dragX}px))`,
+          transition: isDragging ? 'none' : undefined,
+        }}
+      >
+        {coverProjects.map((project, i) => (
+          <div className={styles.touchSlide} key={project._id}>
+            {Math.abs(i - clampedIndex) <= TOUCH_RENDER_WINDOW && (
+              <CoverMedia project={project} active={i === clampedIndex} />
+            )}
+          </div>
+        ))}
+      </div>
+    </div>
+  )
+}
+
 export default function ImageSlider({
   projects,
   activeProject,
@@ -623,10 +755,9 @@ export default function ImageSlider({
   const [slides, setSlides] = useState<ProjectSlide[] | null>(null)
   const cache = useRef(new Map<string, ProjectSlide[]>())
   const [hoverIndex, setHoverIndex] = useState(0)
-  // Space bar toggles this on/off on desktop; on a touch device (no
-  // keyboard, no hover) it's the idle stage's default instead — see the
-  // isTouchDevice effect below. Moving the mouse, or touch-dragging, hands
-  // control straight back to cursor/finger-position scrubbing.
+  // Desktop-only: Space bar toggles this on/off for the cursor-scrubbed idle
+  // stage below. Touch devices use their own swipe carousel (TouchCoverSlider
+  // above) instead, which has no concept of autoplay.
   const [isAutoPlaying, setIsAutoPlaying] = useState(false)
   const [isTouchDevice, setIsTouchDevice] = useState(false)
   const stageRef = useRef<HTMLDivElement | null>(null)
@@ -637,10 +768,9 @@ export default function ImageSlider({
 
   const coverProjects = useMemo(() => projects.filter((project) => project.coverMedia), [projects])
 
-  // Idle stage: cursor/touch X position (as a ratio of the stage width)
-  // selects which cover is shown, splitting the stage into one segment per
-  // project — left edge is the first cover, right edge the last. Shared by
-  // the mouse and touch handlers below.
+  // Idle stage (desktop only): cursor X position (as a ratio of the stage
+  // width) selects which cover is shown, splitting the stage into one
+  // segment per project — left edge is the first cover, right edge the last.
   const updateHoverIndexFromX = (clientX: number, stage: HTMLDivElement) => {
     const rect = stage.getBoundingClientRect()
     const ratio = Math.min(Math.max((clientX - rect.left) / rect.width, 0), 1)
@@ -653,43 +783,12 @@ export default function ImageSlider({
     updateHoverIndexFromX(event.clientX, event.currentTarget)
   }
 
-  // Holding a touch down and dragging along X scrubs exactly like the mouse
-  // does. .centerStage is `touch-action: none` (imageSlider.module.css) so
-  // the browser doesn't also try to read this as the mobile layout's own
-  // horizontal swipe-between-panels gesture (see version3.module.css's
-  // `.page` scroll-snap carousel) — this claims the drag for scrubbing
-  // instead. A plain tap (no real movement) still fires the click below to
-  // open the project, same as it always has.
-  const handleStageTouchStart = (event: React.TouchEvent<HTMLDivElement>) => {
-    if (coverProjects.length <= 1) return
-    setIsAutoPlaying(false)
-    updateHoverIndexFromX(event.touches[0].clientX, event.currentTarget)
-  }
-
-  const handleStageTouchMove = (event: React.TouchEvent<HTMLDivElement>) => {
-    if (coverProjects.length <= 1) return
-    updateHoverIndexFromX(event.touches[0].clientX, event.currentTarget)
-  }
-
-  // Releasing the drag hands control back to the ambient slideshow — touch
-  // has no equivalent of pressing Space again, so autoplay is what the idle
-  // stage defaults back to once the user lets go.
-  const handleStageTouchEnd = () => {
-    if (isTouchDevice) setIsAutoPlaying(true)
-  }
-
-  // The slideshow only makes sense on the idle stage (below) — leaving it,
-  // whether by opening a project or just hovering a row, stops it rather
-  // than leaving it running silently in the background. On a touch device,
-  // returning to the idle stage restarts it automatically, since there's no
-  // Space key to turn it back on.
+  // The slideshow only makes sense on the desktop idle stage (below) —
+  // leaving it, whether by opening a project or just hovering a row, stops
+  // it rather than leaving it running silently in the background.
   useEffect(() => {
-    if (activeProject || hoveredProject) {
-      setIsAutoPlaying(false)
-      return
-    }
-    if (isTouchDevice && coverProjects.length > 1) setIsAutoPlaying(true)
-  }, [activeProject, hoveredProject, isTouchDevice, coverProjects.length])
+    if (activeProject || hoveredProject) setIsAutoPlaying(false)
+  }, [activeProject, hoveredProject])
 
   // Space toggles the idle stage between cursor-scrubbed and auto-advancing
   // through covers, like a slideshow. Ignored while typing anywhere else on
@@ -763,9 +862,15 @@ export default function ImageSlider({
     )
   }
 
-  // ----- idle: cursor X position picks the cover; click opens that project -----
+  // ----- idle -----
   if (coverProjects.length === 0) return <div className={styles.centerStage} />
 
+  // Touch: swipe carousel, one cover per screen — see TouchCoverSlider above.
+  if (isTouchDevice) {
+    return <TouchCoverSlider coverProjects={coverProjects} onOpenProject={onOpenProject} />
+  }
+
+  // Desktop: cursor X position picks the cover; click opens it.
   const current = coverProjects[Math.min(hoverIndex, coverProjects.length - 1)]
 
   return (
@@ -773,10 +878,6 @@ export default function ImageSlider({
       ref={stageRef}
       className={styles.centerStage}
       onMouseMove={handleStageMouseMove}
-      onTouchStart={handleStageTouchStart}
-      onTouchMove={handleStageTouchMove}
-      onTouchEnd={handleStageTouchEnd}
-      onTouchCancel={handleStageTouchEnd}
       onClick={() => onOpenProject(current.slug)}
     >
       <CoverMedia project={current} />

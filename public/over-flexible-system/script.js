@@ -330,10 +330,7 @@ let mapSpeed = 0.2;              // speed used when animated
 // ------------------------------------
 const COLOR_POOL = [
   "#000000",
-  "#FF0000",
-  "#00FF00",
-  "#0000FF",
-  "FFFFFF"
+  "#FF0000"
 ];
 
 const BW_POOL = [

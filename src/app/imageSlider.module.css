@@ -25,6 +25,37 @@
   height: auto;
 }
 
+/* mobile-only swipe carousel (see TouchCoverSlider in ImageSlider.tsx):
+   viewport clips the track, which is dragged/snapped horizontally by JS via
+   inline transform. touch-action: none claims the drag for the carousel
+   itself, same reason .centerStage above does — otherwise the browser reads
+   it as the mobile layout's own horizontal swipe-between-panels gesture
+   (.page's scroll-snap carousel in version3.module.css). */
+.touchSliderViewport {
+  height: 100%;
+  width: 100%;
+  overflow: hidden;
+  touch-action: none;
+}
+
+.touchSliderTrack {
+  display: flex;
+  height: 100%;
+  width: 100%;
+  transition: transform 300ms ease-out;
+}
+
+.touchSlide {
+  flex: 0 0 100%;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  padding: clamp(16px, 3vw, 32px);
+}
+
 /* open mode: the selected project's own slides, scrollable */
 .scrollSlider {
   height: 100%;
