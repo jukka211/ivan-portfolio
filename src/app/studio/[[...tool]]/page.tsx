@@ -1,5 +1,5 @@
 import {metadata, viewport} from 'next-sanity/studio'
-import StudioClient from './StudioClient'
+import StudioClient from '../StudioClient'
 
 export {metadata, viewport}
 
