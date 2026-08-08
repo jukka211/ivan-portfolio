@@ -3,7 +3,7 @@
 /* hover mode (a row is hovered but nothing open) and the empty-covers
    fallback both still just want a single centered, static cover — see the
    hoveredProject branch and the coverProjects.length===0 branch in
-   ImageSlider.tsx. The idle browsing stage itself is .coverScroller below. */
+   ImageSlider.tsx. The idle browsing stage itself is .coverStage below. */
 .centerStage {
   position: relative;
   height: 100%;
@@ -31,9 +31,22 @@
    needed. scroll-snap-stop: always on each .coverSlide (mirroring .page's
    own pane-swipe carousel in version3.module.css) is what makes a fast
    scroll or flick stop at every cover in turn rather than skipping past
-   several uncounted. */
-.coverScroller {
+   several uncounted.
+
+   .coverStage wraps the actual scrolling element (.coverScroller below) in
+   a non-scrolling parent — that's the containing block .coverIndicator
+   anchors to instead. An absolutely positioned element's normal-flow layout
+   is exempt from its scrolling ancestor, but its *painted* position still
+   rides along with that ancestor's scroll offset if that ancestor is also
+   its containing block, which was leaving the indicator scrolling off
+   along with the covers. */
+.coverStage {
   position: relative;
+  height: 100%;
+  width: 100%;
+}
+
+.coverScroller {
   height: 100%;
   width: 100%;
   overflow-y: auto;
@@ -58,30 +71,28 @@
   scroll-snap-stop: always;
 }
 
-/* [1] [2] [3] … cover index, right edge, vertically centered — shared by
-   both idle stages (desktop .centerStage, mobile .coverScroller; both set
-   position:relative above so this anchors to the stage itself, not some
-   further-out ancestor). Purely a visual readout of where you are in the
-   cover list, not a click target — pointer-events:none keeps it out of the
-   way of the scroll/click handling the stage itself already does.
-   Each item's own glyphs are drawn sideways via vertical-rl (reading
-   top-to-bottom, rotated 90° clockwise) while the items themselves still
-   stack in plain top-to-bottom order — rotating the *container* instead
-   would turn that stacking sideways too, which isn't what's wanted here. */
+/* [1] [2] [3] … cover index, right edge, spanning the full pane height
+   (top:0 to bottom:0) so justify-content:space-between spreads the numbers
+   evenly from top to bottom — anchored to .coverStage, a non-scrolling
+   sibling of .coverScroller (see .coverStage above for why it can't anchor
+   to .coverScroller itself). Purely a visual readout of where you are in the
+   cover list, not a click target —
+   pointer-events:none keeps it out of the way of the scroll/click handling
+   the stage itself already does. Numbers stay upright (no rotation) and
+   stacked in plain top-to-bottom order. */
 .coverIndicator {
   position: absolute;
-  top: 50%;
-  right: 4px;
-  transform: translateY(-50%);
+  top: 8px;
+  bottom: 8px;
+  right: 2px;
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 4px;
+  justify-content: space-between;
   pointer-events: none;
 }
 
 .coverIndicatorItem {
-  writing-mode: vertical-rl;
   color: var(--muted);
   font-family: var(--font-family);
   font-size: var(--text-size);
@@ -99,18 +110,15 @@
    instead keeps every number visible regardless of cover count. */
 .coverIndicatorHorizontal {
   top: auto;
-  right: auto;
   bottom: clamp(12px, 4vw, 24px);
   left: 50%;
+  right: auto;
   transform: translateX(-50%);
   flex-direction: row;
   flex-wrap: wrap;
   justify-content: center;
+  gap: 4px;
   max-width: calc(100% - 2 * clamp(12px, 4vw, 24px));
-}
-
-.coverIndicatorHorizontal .coverIndicatorItem {
-  writing-mode: horizontal-tb;
 }
 
 /* open mode: the selected project's own slides, scrollable */

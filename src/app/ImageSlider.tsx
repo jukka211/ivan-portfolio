@@ -584,11 +584,8 @@ function SlideList({
 // CoverScroller below mounts several covers at once (the active one plus its
 // window neighbors, so scrolling to a fresh cover never shows a blank slide)
 // on both desktop and touch, gating playback to just the exact active one —
-// see CoverScroller's own `active` comment. The remaining call site
-// (hovered-row preview) still mounts a single CoverMedia and leaves `active`
-// undefined, keeping the old disableLazyLoadOnMobile behavior (immediate
-// play, no IntersectionObserver wait).
-function CoverMedia({project, active}: {project: Project; active?: boolean}) {
+// see CoverScroller's own `active` comment.
+function CoverMedia({project, active}: {project: Project; active: boolean}) {
   const cover = project.coverMedia
   if (!cover) return null
 
@@ -598,15 +595,7 @@ function CoverMedia({project, active}: {project: Project; active?: boolean}) {
   const fit = 'contain'
 
   if (cover.mediaType === 'video' && cover.video?.asset?.url) {
-    return (
-      <LazyVideo
-        src={cover.video.asset.url}
-        className={styles.centerMedia}
-        fitMode={fit}
-        active={active}
-        disableLazyLoadOnMobile={active === undefined}
-      />
-    )
+    return <LazyVideo src={cover.video.asset.url} className={styles.centerMedia} fitMode={fit} active={active} />
   }
 
   if (cover.mediaType === 'image' && cover.image) {
@@ -627,11 +616,11 @@ function CoverMedia({project, active}: {project: Project; active?: boolean}) {
 // the rest dimmed (var(--muted), gray) — shared by both idle stages (desktop
 // cursor-scrub and the mobile swipe carousel) so there's one definition of
 // what the indicator looks like. `horizontal` switches it from the desktop
-// default (right edge, vertically centered, glyphs rotated 90° clockwise)
-// to the mobile layout (bottom edge, horizontally centered, upright) — a
-// prop straight from which stage is rendering it, not a width media query,
-// since isTouchDevice (which picks the stage) and viewport width can
-// disagree (a touch laptop/tablet in landscape, say).
+// default (right edge, spanning the full pane height, numbers stacked
+// upright with space between them) to the mobile layout (bottom edge,
+// horizontally centered) — a prop straight from which stage is rendering
+// it, not a width media query, since isTouchDevice (which picks the stage)
+// and viewport width can disagree (a touch laptop/tablet in landscape, say).
 function CoverIndicator({
   count,
   activeIndex,
@@ -684,15 +673,21 @@ function CoverScroller({
   onOpenProject,
   onActiveChange,
   isTouchDevice,
+  scrollToSlug,
 }: {
   coverProjects: Project[]
   onOpenProject: (slug?: string) => void
   // Reports whichever cover is currently active on every change, and
-  // undefined once this carousel unmounts (an open project, a hovered row,
-  // or coverProjects itself going empty — see onIdleCoverChange on
-  // ImageSlider below). Left undefined entirely by the touch call site.
+  // undefined once this carousel unmounts (an open project or
+  // coverProjects itself going empty — see onIdleCoverChange on ImageSlider
+  // below). Left undefined entirely by the touch call site.
   onActiveChange?: (slug?: string) => void
   isTouchDevice: boolean
+  // Desktop only: hovering a listColumn row (see ImageSlider below) — this
+  // carousel scroll-snaps to that project's cover instead of anything
+  // swapping in a separate static view, so hovering feels like the same
+  // scrolling a user could do by hand.
+  scrollToSlug?: string
 }) {
   const containerRef = useRef<HTMLDivElement | null>(null)
   const [activeIndex, setActiveIndex] = useState(0)
@@ -730,16 +725,30 @@ function CoverScroller({
     return () => onActiveChange?.(undefined)
   }, [onActiveChange])
 
+  // Same native smooth-scroll a user scrolling by hand would trigger — the
+  // scroll listener above (`measure`) picks up the resulting activeIndex on
+  // its own as the scroll animates, same as any other scroll.
+  useEffect(() => {
+    if (!scrollToSlug) return
+    const container = containerRef.current
+    if (!container) return
+    const index = coverProjects.findIndex((project) => project.slug === scrollToSlug)
+    if (index === -1) return
+    container.scrollTo({top: index * (container.clientHeight || 1), behavior: 'smooth'})
+  }, [scrollToSlug, coverProjects])
+
   return (
-    <div className={styles.coverScroller} ref={containerRef}>
-      {coverProjects.map((project, index) => {
-        const withinWindow = Math.abs(index - activeIndex) <= COVER_RENDER_WINDOW
-        return (
-          <div className={styles.coverSlide} key={project._id} onClick={() => onOpenProject(project.slug)}>
-            {withinWindow && <CoverMedia project={project} active={index === activeIndex} />}
-          </div>
-        )
-      })}
+    <div className={styles.coverStage}>
+      <div className={styles.coverScroller} ref={containerRef}>
+        {coverProjects.map((project, index) => {
+          const withinWindow = Math.abs(index - activeIndex) <= COVER_RENDER_WINDOW
+          return (
+            <div className={styles.coverSlide} key={project._id} onClick={() => onOpenProject(project.slug)}>
+              {withinWindow && <CoverMedia project={project} active={index === activeIndex} />}
+            </div>
+          )
+        })}
+      </div>
       <CoverIndicator count={coverProjects.length} activeIndex={activeIndex} horizontal={isTouchDevice} />
     </div>
   )
@@ -757,12 +766,10 @@ export default function ImageSlider({
   hoveredProject: Project | null
   onOpenProject: (slug?: string) => void
   // Desktop only: fires with whichever cover the idle stage is currently
-  // showing, or undefined once nothing is — an open project, a hovered row
-  // (that already has its own static cover, see the hoveredProject branch
-  // below), a touch device (its own carousel, unrelated to this), or
-  // coverProjects itself going empty. Lets the caller mirror that selection
-  // onto the corresponding row in listColumn without ImageSlider needing to
-  // know anything about rows.
+  // showing, or undefined once nothing is — an open project, a touch device
+  // (its own carousel, unrelated to this), or coverProjects itself going
+  // empty. Lets the caller mirror that selection onto the corresponding row
+  // in listColumn without ImageSlider needing to know anything about rows.
   onIdleCoverChange?: (slug?: string) => void
 }) {
   const [slides, setSlides] = useState<ProjectSlide[] | null>(null)
@@ -806,16 +813,10 @@ export default function ImageSlider({
     return <SlideList slides={renderableSlides} loading={slides === null} isTouchDevice={isTouchDevice} />
   }
 
-  // ----- hovering a row (nothing open): show that project's cover, centered, static -----
-  if (hoveredProject) {
-    return (
-      <div className={styles.centerStage} onClick={() => onOpenProject(hoveredProject.slug)}>
-        <CoverMedia project={hoveredProject} />
-      </div>
-    )
-  }
-
-  // ----- idle: vertical scroll-snap carousel — see CoverScroller above -----
+  // ----- idle: vertical scroll-snap carousel — see CoverScroller above.
+  // Hovering a listColumn row (hoveredProject) doesn't swap in a separate
+  // static view — it just scroll-snaps this same carousel to that project's
+  // cover, via CoverScroller's own scrollToSlug prop. -----
   if (coverProjects.length === 0) return <div className={styles.centerStage} />
 
   return (
@@ -824,6 +825,7 @@ export default function ImageSlider({
       onOpenProject={onOpenProject}
       onActiveChange={isTouchDevice ? undefined : onIdleCoverChange}
       isTouchDevice={isTouchDevice}
+      scrollToSlug={hoveredProject?.slug}
     />
   )
 }
