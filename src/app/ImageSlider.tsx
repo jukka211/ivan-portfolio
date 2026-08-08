@@ -578,20 +578,24 @@ function SlideList({
   )
 }
 
-// `active` is only passed by the touch carousel below, where several covers
-// (the current one plus its window neighbors) can be mounted at once — it
-// gates LazyVideo's playback directly so only the on-screen slide actually
-// decodes/plays, the same one-video-at-a-time rule SlideList enforces for
-// the same reason (concurrent decoders crash mobile Safari/Chrome). The two
-// older call sites (hovered-row preview, desktop idle stage) never mount
-// more than one CoverMedia at a time, so they still get the old
-// disableLazyLoadOnMobile behavior (immediate play, no IntersectionObserver
-// wait) by leaving `active` undefined.
+// `active` gates LazyVideo's playback directly so only the intended slide(s)
+// actually decode/play, the same one-video-at-a-time rule SlideList enforces
+// for the same reason (concurrent decoders crash mobile Safari/Chrome).
+// CoverScroller below mounts several covers at once (the active one plus its
+// window neighbors, so scrolling to a fresh cover never shows a blank slide)
+// on both desktop and touch, gating playback to just the exact active one —
+// see CoverScroller's own `active` comment. The remaining call site
+// (hovered-row preview) still mounts a single CoverMedia and leaves `active`
+// undefined, keeping the old disableLazyLoadOnMobile behavior (immediate
+// play, no IntersectionObserver wait).
 function CoverMedia({project, active}: {project: Project; active?: boolean}) {
   const cover = project.coverMedia
   if (!cover) return null
 
-  const fit = cover.fitMode === 'cover' ? 'cover' : 'contain'
+  // Always 'contain', not driven by the project's own fitMode field — a
+  // cover should always show in full, never cropped, centered within its
+  // slide.
+  const fit = 'contain'
 
   if (cover.mediaType === 'video' && cover.video?.asset?.url) {
     return (
@@ -654,125 +658,89 @@ function CoverIndicator({
   )
 }
 
-// Only the current cover plus one neighbor on each side ever mount real
-// media — same windowing idea as SlideList's RENDER_WINDOW, just for a
-// one-slide-per-screen carousel instead of a scrolling list. Anything
-// further away renders an empty (but identically sized) slide, picking up
-// its media once a swipe brings it within the window.
-const TOUCH_RENDER_WINDOW = 1
+// Only the active cover plus one neighbor on each side ever mount real media
+// — same windowing idea as SlideList's RENDER_WINDOW, just for a
+// one-cover-per-screen carousel instead of a scrolling multi-slide list.
+// Anything further away renders an empty (but identically sized) slide,
+// picking up its media once a scroll brings it within the window.
+const COVER_RENDER_WINDOW = 1
 
-// Fraction of the viewport width a swipe has to cross before it counts as a
-// deliberate "go to the next/previous cover" instead of springing back to
-// the one already showing.
-const TOUCH_SWIPE_THRESHOLD_RATIO = 0.2
-
-// Total finger movement (either axis) below which a touch counts as a tap
-// (open the project) rather than a swipe — real swipes almost always drift
-// a little on the perpendicular axis too, so this checks combined movement
-// rather than just horizontal distance.
-const TOUCH_TAP_MAX_MOVEMENT_PX = 10
-
-// Mobile-only carousel: one project cover per screen, swipe left/right to
-// move between them, tap the one showing to open it. Deliberately its own
-// component (rather than another branch bolted onto the desktop idle stage
-// below) since it tracks an actual drag gesture — live finger-following
-// translateX, then either a spring-back or a snap to the next/previous
-// cover — which has nothing in common with the desktop stage's
-// cursor-position scrubbing.
+// Vertical scroll-snap carousel — one project cover per full-height "page"
+// of the stage, shared by desktop and touch alike: native scrolling (wheel,
+// trackpad, touch-drag) already unifies both input types, so unlike the old
+// desktop cursor-scrub vs. mobile swipe-carousel split, there's no separate
+// gesture code to write per platform here. .coverSlide's `scroll-snap-stop:
+// always` (see imageSlider.module.css) is what makes a fast scroll or flick
+// still land on every cover in turn instead of skipping past several
+// uncounted.
 //
-// Opening a project is handled directly from the tap branch in
-// handleTouchEnd, not a shared onClick: after a real swipe, mobile browsers
-// still fire a compatibility click at touchend, and with onClick reading
-// "whichever cover is showing now" that would reopen whatever the swipe
-// just navigated to. Not wiring onClick at all sidesteps that regardless of
-// how reliably a given browser suppresses that synthetic click.
-function TouchCoverSlider({
+// Opening a project is a plain onClick per slide — no tap-vs-drag
+// disambiguation needed the way the old touch carousel required, because a
+// *native* scroll (unlike a hand-rolled touchstart/move/end drag) never
+// fires a click on its own; the browser already only dispatches one for an
+// actual tap.
+function CoverScroller({
   coverProjects,
   onOpenProject,
+  onActiveChange,
+  isTouchDevice,
 }: {
   coverProjects: Project[]
   onOpenProject: (slug?: string) => void
+  // Reports whichever cover is currently active on every change, and
+  // undefined once this carousel unmounts (an open project, a hovered row,
+  // or coverProjects itself going empty — see onIdleCoverChange on
+  // ImageSlider below). Left undefined entirely by the touch call site.
+  onActiveChange?: (slug?: string) => void
+  isTouchDevice: boolean
 }) {
-  const [index, setIndex] = useState(0)
-  // Live drag offset in px, layered on top of `index`'s own -100%-per-slide
-  // position — reset to 0 the moment a touch ends, whether it snapped to a
-  // new index or sprang back to the same one (see the transition comment
-  // below for why that doesn't jump).
-  const [dragX, setDragX] = useState(0)
-  // No CSS transition while a finger is actually down (the track should
-  // track it 1:1, not lag behind an eased animation) — switched back on at
-  // touchend, right as `dragX` resets to 0 and/or `index` changes, so the
-  // browser animates from the last drag position to the settled one instead
-  // of jumping straight there.
-  const [isDragging, setIsDragging] = useState(false)
-  const viewportRef = useRef<HTMLDivElement | null>(null)
-  const touchStartRef = useRef<{x: number; y: number} | null>(null)
+  const containerRef = useRef<HTMLDivElement | null>(null)
+  const [activeIndex, setActiveIndex] = useState(0)
 
-  // Defensive only: coverProjects.length is never expected to change while
-  // this component is mounted, but this keeps `index` from ever pointing
-  // past the end if it somehow did.
-  const clampedIndex = Math.min(index, coverProjects.length - 1)
+  // Every slide is exactly one container-height tall (scroll-snap keeps it
+  // that way), so the active index is just scrollTop divided by that height
+  // — no need for SlideList's per-slide getBoundingClientRect scan, which
+  // exists there specifically to handle *varying* slide heights.
+  useEffect(() => {
+    const container = containerRef.current
+    if (!container) return
 
-  const handleTouchStart = (event: React.TouchEvent<HTMLDivElement>) => {
-    const touch = event.touches[0]
-    touchStartRef.current = {x: touch.clientX, y: touch.clientY}
-    setIsDragging(true)
-  }
-
-  const handleTouchMove = (event: React.TouchEvent<HTMLDivElement>) => {
-    const start = touchStartRef.current
-    if (!start) return
-    setDragX(event.touches[0].clientX - start.x)
-  }
-
-  const handleTouchEnd = (event: React.TouchEvent<HTMLDivElement>) => {
-    const start = touchStartRef.current
-    touchStartRef.current = null
-    setIsDragging(false)
-    setDragX(0)
-    if (!start) return
-
-    const touch = event.changedTouches[0]
-    const deltaX = touch.clientX - start.x
-    const deltaY = touch.clientY - start.y
-
-    if (Math.abs(deltaX) < TOUCH_TAP_MAX_MOVEMENT_PX && Math.abs(deltaY) < TOUCH_TAP_MAX_MOVEMENT_PX) {
-      onOpenProject(coverProjects[clampedIndex]?.slug)
-      return
+    const measure = () => {
+      const slideHeight = container.clientHeight || 1
+      const index = Math.round(container.scrollTop / slideHeight)
+      const clamped = Math.min(Math.max(index, 0), coverProjects.length - 1)
+      setActiveIndex((current) => (current === clamped ? current : clamped))
     }
 
-    const viewportWidth = viewportRef.current?.clientWidth || 1
-    if (Math.abs(deltaX) < viewportWidth * TOUCH_SWIPE_THRESHOLD_RATIO) return
+    measure()
+    container.addEventListener('scroll', measure, {passive: true})
+    const resizeObserver = new ResizeObserver(measure)
+    resizeObserver.observe(container)
+    return () => {
+      container.removeEventListener('scroll', measure)
+      resizeObserver.disconnect()
+    }
+  }, [coverProjects.length])
 
-    const direction = deltaX < 0 ? 1 : -1
-    setIndex((current) => Math.min(Math.max(current + direction, 0), coverProjects.length - 1))
-  }
+  useEffect(() => {
+    onActiveChange?.(coverProjects[activeIndex]?.slug)
+  }, [onActiveChange, coverProjects, activeIndex])
+
+  useEffect(() => {
+    return () => onActiveChange?.(undefined)
+  }, [onActiveChange])
 
   return (
-    <div
-      ref={viewportRef}
-      className={styles.touchSliderViewport}
-      onTouchStart={handleTouchStart}
-      onTouchMove={handleTouchMove}
-      onTouchEnd={handleTouchEnd}
-      onTouchCancel={handleTouchEnd}
-    >
-      <div
-        className={styles.touchSliderTrack}
-        style={{
-          transform: `translateX(calc(${clampedIndex * -100}% + ${dragX}px))`,
-          transition: isDragging ? 'none' : undefined,
-        }}
-      >
-        {coverProjects.map((project, i) => (
-          <div className={styles.touchSlide} key={project._id}>
-            {Math.abs(i - clampedIndex) <= TOUCH_RENDER_WINDOW && (
-              <CoverMedia project={project} active={i === clampedIndex} />
-            )}
+    <div className={styles.coverScroller} ref={containerRef}>
+      {coverProjects.map((project, index) => {
+        const withinWindow = Math.abs(index - activeIndex) <= COVER_RENDER_WINDOW
+        return (
+          <div className={styles.coverSlide} key={project._id} onClick={() => onOpenProject(project.slug)}>
+            {withinWindow && <CoverMedia project={project} active={index === activeIndex} />}
           </div>
-        ))}
-      </div>
-      <CoverIndicator count={coverProjects.length} activeIndex={clampedIndex} horizontal />
+        )
+      })}
+      <CoverIndicator count={coverProjects.length} activeIndex={activeIndex} horizontal={isTouchDevice} />
     </div>
   )
 }
@@ -789,96 +757,23 @@ export default function ImageSlider({
   hoveredProject: Project | null
   onOpenProject: (slug?: string) => void
   // Desktop only: fires with whichever cover the idle stage is currently
-  // showing (cursor-scrubbed or autoplaying), or undefined once nothing is —
-  // an open project, a hovered row (that already has its own static cover,
-  // see the hoveredProject branch below), or a touch device (its own swipe
-  // carousel, unrelated to this). Lets the caller mirror that selection onto
-  // the corresponding row in listColumn without ImageSlider needing to know
-  // anything about rows.
+  // showing, or undefined once nothing is — an open project, a hovered row
+  // (that already has its own static cover, see the hoveredProject branch
+  // below), a touch device (its own carousel, unrelated to this), or
+  // coverProjects itself going empty. Lets the caller mirror that selection
+  // onto the corresponding row in listColumn without ImageSlider needing to
+  // know anything about rows.
   onIdleCoverChange?: (slug?: string) => void
 }) {
   const [slides, setSlides] = useState<ProjectSlide[] | null>(null)
   const cache = useRef(new Map<string, ProjectSlide[]>())
-  const [hoverIndex, setHoverIndex] = useState(0)
-  // Desktop-only: Space bar toggles this on/off for the cursor-scrubbed idle
-  // stage below. Touch devices use their own swipe carousel (TouchCoverSlider
-  // above) instead, which has no concept of autoplay.
-  const [isAutoPlaying, setIsAutoPlaying] = useState(false)
   const [isTouchDevice, setIsTouchDevice] = useState(false)
-  const stageRef = useRef<HTMLDivElement | null>(null)
 
   useEffect(() => {
     setIsTouchDevice(window.matchMedia('(pointer: coarse)').matches)
   }, [])
 
   const coverProjects = useMemo(() => projects.filter((project) => project.coverMedia), [projects])
-
-  // Reports the desktop idle stage's currently-shown cover up to the parent
-  // (see onIdleCoverChange above) — cleared (undefined) the moment the idle
-  // stage isn't what's on screen, so a stale highlight doesn't linger on a
-  // row after a project opens or a different row is hovered directly.
-  useEffect(() => {
-    if (!onIdleCoverChange) return
-    if (isTouchDevice || activeProject || hoveredProject || coverProjects.length === 0) {
-      onIdleCoverChange(undefined)
-      return
-    }
-    onIdleCoverChange(coverProjects[Math.min(hoverIndex, coverProjects.length - 1)]?.slug)
-  }, [onIdleCoverChange, isTouchDevice, activeProject, hoveredProject, coverProjects, hoverIndex])
-
-  // Idle stage (desktop only): cursor X position (as a ratio of the stage
-  // width) selects which cover is shown, splitting the stage into one
-  // segment per project — left edge is the first cover, right edge the last.
-  const updateHoverIndexFromX = (clientX: number, stage: HTMLDivElement) => {
-    const rect = stage.getBoundingClientRect()
-    const ratio = Math.min(Math.max((clientX - rect.left) / rect.width, 0), 1)
-    setHoverIndex(Math.min(Math.floor(ratio * coverProjects.length), coverProjects.length - 1))
-  }
-
-  const handleStageMouseMove = (event: React.MouseEvent<HTMLDivElement>) => {
-    if (coverProjects.length <= 1) return
-    setIsAutoPlaying(false)
-    updateHoverIndexFromX(event.clientX, event.currentTarget)
-  }
-
-  // The slideshow only makes sense on the desktop idle stage (below) —
-  // leaving it, whether by opening a project or just hovering a row, stops
-  // it rather than leaving it running silently in the background.
-  useEffect(() => {
-    if (activeProject || hoveredProject) setIsAutoPlaying(false)
-  }, [activeProject, hoveredProject])
-
-  // Space toggles the idle stage between cursor-scrubbed and auto-advancing
-  // through covers, like a slideshow. Ignored while typing anywhere else on
-  // the page (e.g. the send-request form) so it doesn't hijack a literal space.
-  useEffect(() => {
-    if (activeProject || hoveredProject || coverProjects.length <= 1) return
-
-    const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.code !== 'Space') return
-      const target = event.target as HTMLElement | null
-      if (target && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable)) {
-        return
-      }
-      event.preventDefault()
-      setIsAutoPlaying((current) => !current)
-    }
-
-    window.addEventListener('keydown', handleKeyDown)
-    return () => window.removeEventListener('keydown', handleKeyDown)
-  }, [activeProject, hoveredProject, coverProjects.length])
-
-  // Auto-advance through covers, wrapping back to the first once it reaches
-  // the last, for as long as isAutoPlaying stays on.
-  useEffect(() => {
-    if (!isAutoPlaying || coverProjects.length <= 1) return
-
-    const AUTO_PLAY_INTERVAL_MS = 200
-    const id = setInterval(() => {
-      setHoverIndex((current) => (current + 1) % coverProjects.length)
-    }, AUTO_PLAY_INTERVAL_MS)
-    return () => clearInterval(id)
-  }, [isAutoPlaying, coverProjects.length])
 
   useEffect(() => {
     const slug = activeProject?.slug
@@ -920,27 +815,15 @@ export default function ImageSlider({
     )
   }
 
-  // ----- idle -----
+  // ----- idle: vertical scroll-snap carousel — see CoverScroller above -----
   if (coverProjects.length === 0) return <div className={styles.centerStage} />
 
-  // Touch: swipe carousel, one cover per screen — see TouchCoverSlider above.
-  if (isTouchDevice) {
-    return <TouchCoverSlider coverProjects={coverProjects} onOpenProject={onOpenProject} />
-  }
-
-  // Desktop: cursor X position picks the cover; click opens it.
-  const activeIndex = Math.min(hoverIndex, coverProjects.length - 1)
-  const current = coverProjects[activeIndex]
-
   return (
-    <div
-      ref={stageRef}
-      className={styles.centerStage}
-      onMouseMove={handleStageMouseMove}
-      onClick={() => onOpenProject(current.slug)}
-    >
-      <CoverMedia project={current} />
-      <CoverIndicator count={coverProjects.length} activeIndex={activeIndex} />
-    </div>
+    <CoverScroller
+      coverProjects={coverProjects}
+      onOpenProject={onOpenProject}
+      onActiveChange={isTouchDevice ? undefined : onIdleCoverChange}
+      isTouchDevice={isTouchDevice}
+    />
   )
 }

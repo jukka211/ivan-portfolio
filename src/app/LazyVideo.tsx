@@ -102,9 +102,17 @@ export default function LazyVideo({
       const playPromise = el.play()
       if (playPromise) playPromise.catch(() => {})
     } else {
+      // Pause only — no removeAttribute('src')/load() here. A caller driving
+      // `active` externally (e.g. a scroll-position carousel) can flip this
+      // false while the element is still fully or partly on screen, mid
+      // transition; clearing the src blanks the frame to black right then,
+      // which reads as a flash/glitch rather than the video just stopping.
+      // Pausing alone freezes on the last decoded frame instead — still
+      // stops decoding new ones (the actual resource cost `active` exists to
+      // avoid, see the concurrent-decoder comments at each call site), and
+      // real cleanup still happens the normal way once this component
+      // actually unmounts and the browser reclaims the detached <video>.
       el.pause()
-      el.removeAttribute('src')
-      el.load()
     }
   }, [isActive, src])
 

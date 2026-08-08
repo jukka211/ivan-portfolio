@@ -36,7 +36,14 @@ export default function RootLayout({
       <head>
         <link rel="stylesheet" href="https://use.typekit.net/vgi5cjy.css" />
       </head>
-      <body className="min-h-full flex flex-col">{children}</body>
+      {/* suppressHydrationWarning: some browser extensions (ad-blockers,
+          security toolbars) inject attributes like bis_register onto <body>
+          before React hydrates — a real mismatch between extension-modified
+          DOM and server output, but not a bug in this app, since the actual
+          rendered content is identical either way. */}
+      <body className="min-h-full flex flex-col" suppressHydrationWarning>
+        {children}
+      </body>
     </html>
   );
 }

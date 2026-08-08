@@ -1,6 +1,9 @@
 /* inherits --border / --muted from the .page tokens in version3.module.css */
 
-/* idle / hover mode: one cover, centered, no scrollbar */
+/* hover mode (a row is hovered but nothing open) and the empty-covers
+   fallback both still just want a single centered, static cover — see the
+   hoveredProject branch and the coverProjects.length===0 branch in
+   ImageSlider.tsx. The idle browsing stage itself is .coverScroller below. */
 .centerStage {
   position: relative;
   height: 100%;
@@ -11,11 +14,6 @@
   overflow: hidden;
   padding: clamp(16px, 3vw, 32px);
   cursor: pointer;
-  /* A touch-drag here is claimed for scrubbing covers (see ImageSlider.tsx's
-     touch handlers) rather than read by the browser as the mobile layout's
-     own horizontal swipe-between-panels gesture (.page's scroll-snap
-     carousel in version3.module.css). */
-  touch-action: none;
 }
 
 .centerMedia {
@@ -26,44 +24,46 @@
   height: auto;
 }
 
-/* mobile-only swipe carousel (see TouchCoverSlider in ImageSlider.tsx):
-   viewport clips the track, which is dragged/snapped horizontally by JS via
-   inline transform. touch-action: none claims the drag for the carousel
-   itself, same reason .centerStage above does — otherwise the browser reads
-   it as the mobile layout's own horizontal swipe-between-panels gesture
-   (.page's scroll-snap carousel in version3.module.css). */
-.touchSliderViewport {
+/* Idle mode: vertical scroll-snap carousel (CoverScroller in
+   ImageSlider.tsx) — one cover per full-height "page" of the stage, shared
+   by desktop (wheel/trackpad) and touch (scroll) alike, since native
+   scrolling already unifies both input types with no custom gesture code
+   needed. scroll-snap-stop: always on each .coverSlide (mirroring .page's
+   own pane-swipe carousel in version3.module.css) is what makes a fast
+   scroll or flick stop at every cover in turn rather than skipping past
+   several uncounted. */
+.coverScroller {
   position: relative;
   height: 100%;
   width: 100%;
-  overflow: hidden;
-  touch-action: none;
+  overflow-y: auto;
+  overflow-x: hidden;
+  scroll-snap-type: y mandatory;
+  cursor: pointer;
+  scrollbar-width: none;
+}
+.coverScroller::-webkit-scrollbar {
+  display: none;
 }
 
-.touchSliderTrack {
-  display: flex;
+.coverSlide {
   height: 100%;
   width: 100%;
-  transition: transform 300ms ease-out;
-}
-
-.touchSlide {
-  flex: 0 0 100%;
-  width: 100%;
-  height: 100%;
   display: flex;
   align-items: center;
   justify-content: center;
   overflow: hidden;
-  padding: 8px;
+  padding: clamp(16px, 3vw, 32px);
+  scroll-snap-align: start;
+  scroll-snap-stop: always;
 }
 
 /* [1] [2] [3] … cover index, right edge, vertically centered — shared by
-   both idle stages (desktop .centerStage, mobile .touchSliderViewport; both
-   set position:relative above so this anchors to the stage itself, not some
+   both idle stages (desktop .centerStage, mobile .coverScroller; both set
+   position:relative above so this anchors to the stage itself, not some
    further-out ancestor). Purely a visual readout of where you are in the
    cover list, not a click target — pointer-events:none keeps it out of the
-   way of the scrub/swipe/click handling the stage itself already does.
+   way of the scroll/click handling the stage itself already does.
    Each item's own glyphs are drawn sideways via vertical-rl (reading
    top-to-bottom, rotated 90° clockwise) while the items themselves still
    stack in plain top-to-bottom order — rotating the *container* instead
@@ -91,12 +91,12 @@
   color: var(--fg);
 }
 
-/* mobile (TouchCoverSlider): bottom edge, horizontally centered, upright —
-   see the `horizontal` prop comment on CoverIndicator in ImageSlider.tsx.
-   .touchSliderViewport clips anything past its own edges (overflow:hidden),
-   so a single unwrapped row would cut off — and make unreachable — however
-   many numbers didn't fit past a handful of covers; wrapping onto centered
-   lines instead keeps every number visible regardless of cover count. */
+/* touch: bottom edge, horizontally centered, upright — see the `horizontal`
+   prop comment on CoverIndicator in ImageSlider.tsx. .coverScroller clips
+   anything past its own edges (overflow:hidden on the cross axis), so a
+   single unwrapped row would cut off — and make unreachable — however many
+   numbers didn't fit past a handful of covers; wrapping onto centered lines
+   instead keeps every number visible regardless of cover count. */
 .coverIndicatorHorizontal {
   top: auto;
   right: auto;
