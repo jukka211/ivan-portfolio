@@ -69,6 +69,7 @@
   padding: clamp(16px, 3vw, 32px);
   scroll-snap-align: start;
   scroll-snap-stop: always;
+  border-bottom: 1px solid var(--border);
 }
 
 /* [1] [2] [3] … cover index, right edge, spanning the full pane height
